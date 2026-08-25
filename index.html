@@ -86,18 +86,21 @@ nav a {
   white-space:nowrap;
 }
 
-nav a:first-child {
+nav a.active {
   color:var(--blue);
 }
 
-nav a:first-child::after {
-  content:"";
-  position:absolute;
-  left:0;
-  right:0;
-  bottom:18px;
-  height:2px;
-  background:var(--green);
+nav a::after {
+  content:none !important;
+}
+
+nav a.active {
+  color:var(--blue);
+  text-decoration:none;
+  background-image:linear-gradient(var(--green), var(--green));
+  background-repeat:no-repeat;
+  background-position:center calc(50% + 13px);
+  background-size:calc(100% - 20px) 2px;
 }
 
 .wa-icon{
@@ -465,9 +468,7 @@ footer a {
     padding:8px 0 14px;
   }
 
-  nav a:first-child::after {
-    bottom:6px;
-  }
+  nav a.active::after{content:none !important;}
 
   .hero-grid {
     grid-template-columns:1fr;
@@ -759,6 +760,603 @@ footer a {
   gap:9px !important;
 }
 
+
+.calendar-button{
+  background:#0b5fad!important;color:#fff!important;border:1.5px solid #0b5fad!important;
+}
+.calendar-button:hover{
+  background:#084b8c!important;border-color:#084b8c!important;
+}
+.calendar-icon{
+  width:20px;height:20px;flex:0 0 20px;display:inline-flex;align-items:center;justify-content:center;
+}
+.calendar-icon svg{
+  width:20px;height:20px;display:block;fill:none;stroke:currentColor;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round;
+}
+
+
+.booking-section{
+  padding:72px 0;
+  background:#f7fafc;
+}
+.booking-wrap{
+  max-width:1050px;
+  margin:0 auto;
+}
+.booking-frame{
+  margin-top:30px;
+  background:#fff;
+  border:1px solid #e4ebf0;
+  border-radius:16px;
+  overflow:hidden;
+  box-shadow:0 12px 34px rgba(21,55,80,.08);
+}
+.booking-frame iframe{
+  display:block;
+  width:100%;
+  height:700px;
+  border:0;
+  background:#fff;
+}
+#agendamento{
+  scroll-margin-top:115px;
+}
+@media(max-width:1050px){
+  #agendamento{scroll-margin-top:145px}
+}
+@media(max-width:760px){
+  .booking-section{padding:56px 0}
+  .booking-frame{
+    border-radius:10px;
+    margin-top:24px;
+  }
+  .booking-frame iframe{
+    height:760px;
+  }
+  #agendamento{scroll-margin-top:125px}
+}
+
+
+.booking-intro{
+  max-width:650px;
+  margin:18px auto 0;
+  color:var(--muted);
+}
+
+.booking-app{
+  display:grid;
+  grid-template-columns:minmax(0,1.08fr) minmax(320px,.92fr);
+  gap:28px;
+  margin-top:34px;
+  align-items:start;
+}
+
+.booking-left,
+.booking-form{
+  background:#fff;
+  border:1px solid #e4ebf0;
+  border-radius:16px;
+  padding:28px;
+  box-shadow:0 12px 34px rgba(21,55,80,.07);
+}
+
+.field-group{
+  display:grid;
+  gap:8px;
+  margin-bottom:20px;
+}
+
+.field-group label,
+.form-title{
+  font-weight:800;
+  color:var(--blue-dark);
+}
+
+.form-title{
+  font-size:22px;
+  margin-bottom:22px;
+}
+
+.field-group input,
+.field-group select,
+.field-group textarea{
+  width:100%;
+  border:1px solid #d8e1e7;
+  border-radius:8px;
+  padding:12px 13px;
+  font:inherit;
+  color:var(--text);
+  background:#fff;
+  outline:none;
+}
+
+.field-group input:focus,
+.field-group select:focus,
+.field-group textarea:focus{
+  border-color:var(--blue);
+  box-shadow:0 0 0 3px rgba(11,95,173,.10);
+}
+
+.field-note{
+  font-size:12px;
+  color:var(--muted);
+}
+
+.calendar-card{
+  border:1px solid #e1e8ed;
+  border-radius:12px;
+  overflow:hidden;
+  margin-bottom:20px;
+}
+
+.calendar-head{
+  display:grid;
+  grid-template-columns:44px 1fr 44px;
+  align-items:center;
+  padding:14px;
+  border-bottom:1px solid #e8edf1;
+  background:#f9fbfc;
+}
+
+.month-label{
+  text-align:center;
+  font-weight:900;
+  color:var(--blue-dark);
+  text-transform:capitalize;
+}
+
+.cal-nav{
+  width:38px;
+  height:38px;
+  border:0;
+  border-radius:8px;
+  background:#fff;
+  color:var(--blue-dark);
+  font-size:26px;
+  cursor:pointer;
+  border:1px solid #e3e9ee;
+}
+
+.weekday-row,
+.calendar-grid{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+}
+
+.weekday-row{
+  padding:10px 10px 4px;
+  color:#7a8791;
+  font-size:12px;
+  text-align:center;
+  font-weight:800;
+}
+
+.calendar-grid{
+  padding:8px 10px 14px;
+  gap:6px;
+}
+
+.day-cell{
+  aspect-ratio:1 / 1;
+  min-height:44px;
+  border:1px solid transparent;
+  border-radius:9px;
+  background:#fff;
+  color:var(--text);
+  cursor:pointer;
+  font-weight:700;
+}
+
+.day-cell:hover:not(:disabled){
+  background:#eef7e9;
+  border-color:#b8da9d;
+}
+
+.day-cell.selected{
+  background:var(--green);
+  color:#fff;
+}
+
+.day-cell:disabled{
+  color:#b8c1c8;
+  cursor:not-allowed;
+  background:#fafbfc;
+}
+
+.day-cell.empty{
+  visibility:hidden;
+}
+
+.booking-summary{
+  border-radius:10px;
+  padding:14px 15px;
+  background:#f3f8fb;
+  margin-bottom:18px;
+  display:grid;
+  gap:3px;
+}
+
+.booking-summary span{
+  color:var(--muted);
+}
+
+.booking-submit{
+  width:100%;
+  border:0;
+  cursor:pointer;
+}
+
+.booking-status{
+  margin-top:12px;
+  font-size:13px;
+  color:var(--muted);
+  min-height:20px;
+}
+
+@media(max-width:900px){
+  .booking-app{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:560px){
+  .booking-left,
+  .booking-form{
+    padding:20px;
+    border-radius:12px;
+  }
+
+  .calendar-grid{
+    gap:3px;
+    padding-left:6px;
+    padding-right:6px;
+  }
+
+  .day-cell{
+    min-height:40px;
+    font-size:13px;
+  }
+
+  .weekday-row{
+    font-size:11px;
+  }
+}
+
+
+.day-cell.available:not(.selected){
+  border-color:rgba(88,173,23,.35);
+  background:#f5fbf1;
+  color:var(--green-dark);
+}
+.day-cell.available:not(.selected):hover{
+  background:#e8f6df;
+}
+.calendar-grid.loading{
+  opacity:.55;
+  pointer-events:none;
+}
+.booking-status.success{
+  color:#2f8f19;
+  font-weight:700;
+}
+.booking-status.error{
+  color:#b3261e;
+  font-weight:700;
+}
+.booking-submit:disabled{
+  opacity:.65;
+  cursor:not-allowed;
+}
+
+
+.booking-success-modal{
+  position:fixed;
+  inset:0;
+  z-index:99999;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background:rgba(10,32,48,.55);
+}
+.booking-success-modal.show{
+  display:flex;
+}
+.booking-success-box{
+  width:min(520px,100%);
+  background:#fff;
+  border-radius:18px;
+  padding:34px 28px;
+  text-align:center;
+  box-shadow:0 24px 70px rgba(0,0,0,.22);
+}
+.booking-success-icon{
+  width:64px;
+  height:64px;
+  margin:0 auto 18px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:#edf8e8;
+  font-size:34px;
+  font-weight:900;
+  color:#398f20;
+}
+.booking-success-box h3{
+  margin:0 0 10px;
+  color:var(--blue-dark);
+  font-size:25px;
+}
+.booking-success-box p{
+  margin:0 auto 22px;
+  max-width:420px;
+  color:var(--muted);
+  line-height:1.55;
+}
+.booking-success-close{
+  border:0;
+  cursor:pointer;
+  min-width:150px;
+}
+
+
+.booking-whatsapp-help{
+  max-width:720px;
+  margin:28px auto 0;
+  text-align:center;
+  padding:22px 20px;
+}
+.booking-whatsapp-help p{
+  margin:4px 0;
+  line-height:1.5;
+  color:var(--muted);
+}
+.booking-whatsapp-help p strong{
+  color:var(--blue-dark);
+}
+.booking-whatsapp-link{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  margin-top:14px;
+  padding:11px 20px;
+  border-radius:999px;
+  background:#25D366;
+  color:#fff !important;
+  text-decoration:none;
+  font-weight:800;
+  transition:transform .18s ease, box-shadow .18s ease;
+}
+.booking-whatsapp-link:hover{
+  transform:translateY(-2px);
+  box-shadow:0 8px 20px rgba(0,0,0,.14);
+}
+
+
+/* Botões WhatsApp uniformes */
+.whatsapp-button{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:10px !important;
+  min-height:46px;
+  padding:12px 18px !important;
+  border:0 !important;
+  border-radius:8px !important;
+  background:#25D366 !important;
+  color:#fff !important;
+  text-decoration:none !important;
+  font-weight:800 !important;
+  font-size:14px !important;
+  line-height:1 !important;
+  white-space:nowrap;
+  box-shadow:none !important;
+  transition:background-color .18s ease, transform .18s ease !important;
+}
+
+.whatsapp-button:hover{
+  background:#1FBF5B !important;
+  transform:translateY(-1px);
+}
+
+.whatsapp-button:focus-visible{
+  outline:3px solid rgba(37,211,102,.28);
+  outline-offset:3px;
+}
+
+.whatsapp-button .whatsapp-mark{
+  width:22px;
+  height:22px;
+  flex:0 0 22px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  line-height:0;
+}
+
+.whatsapp-button .whatsapp-mark svg{
+  display:block;
+  width:22px;
+  height:22px;
+  fill:#fff;
+}
+
+@media(max-width:760px){
+  .whatsapp-button{
+    width:100%;
+    max-width:360px;
+  }
+}
+
+
+.whatsapp,
+.wa-button,
+.booking-whatsapp-link{
+  background:transparent;
+}
+
+
+.no-availability-message{
+  margin:20px 0 4px;
+  padding:18px 20px;
+  border-radius:12px;
+  background:#f3f8fb;
+  border:1px solid #d8e8f2;
+  text-align:center;
+  color:var(--muted);
+  line-height:1.5;
+}
+.no-availability-message strong{
+  display:block;
+  margin-bottom:5px;
+  color:var(--blue-dark);
+}
+.no-availability-message span{
+  display:block;
+}
+
+
+#prevMonth:disabled{
+  opacity:.32 !important;
+  cursor:not-allowed !important;
+  pointer-events:none !important;
+  transform:none !important;
+  box-shadow:none !important;
+}
+
+
+.personalizado-required-hint{
+  display:block;
+  margin-top:6px;
+  font-size:12px;
+  font-weight:700;
+  color:#b3261e;
+}
+.personalizado-required-hint[hidden]{
+  display:none !important;
+}
+
+
+@media(max-width:760px){
+  nav a.active{
+    background-position:center calc(50% + 12px);
+    background-size:calc(100% - 16px) 2px;
+  }
+}
+
+
+.calendar-card{
+  position:relative;
+}
+
+.calendar-loading-overlay{
+  position:absolute;
+  inset:0;
+  z-index:20;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:rgba(255,255,255,.84);
+  backdrop-filter:blur(2px);
+  border-radius:12px;
+}
+
+.calendar-loading-overlay[hidden]{
+  display:none !important;
+}
+
+.calendar-loading-box{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+  text-align:center;
+  color:var(--blue-dark);
+}
+
+.calendar-loading-box span:last-child{
+  font-size:13px;
+  color:var(--muted);
+}
+
+.calendar-spinner{
+  width:34px;
+  height:34px;
+  border:3px solid #dce8ef;
+  border-top-color:var(--green);
+  border-radius:50%;
+  animation:calendarSpin .8s linear infinite;
+}
+
+@keyframes calendarSpin{
+  to{transform:rotate(360deg)}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .calendar-spinner{
+    animation:none;
+    border-top-color:var(--green);
+  }
+}
+
+
+.day-cell.selected,
+.day-cell.selected:hover,
+.day-cell.available.selected,
+.day-cell.available.selected:hover{
+  background:var(--green) !important;
+  border-color:var(--green) !important;
+  color:#fff !important;
+  box-shadow:0 0 0 2px rgba(88,173,23,.12);
+}
+
+
+/* Alinhamento dos contactos do rodapé */
+footer .contact-line{
+  display:grid;
+  grid-template-columns:24px minmax(0,1fr);
+  align-items:center;
+  column-gap:10px;
+  min-height:28px;
+  margin:0 0 8px;
+  line-height:1.25;
+}
+
+footer .contact-icon{
+  width:24px;
+  height:24px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  align-self:center;
+}
+
+footer .contact-icon svg{
+  width:20px;
+  height:20px;
+}
+
+footer .contact-line a{
+  display:flex;
+  align-items:center;
+  min-height:24px;
+  line-height:1.25;
+  margin:0;
+  padding:0;
+}
+
+
+.booking-submit:disabled{
+  opacity:.45 !important;
+  cursor:not-allowed !important;
+  pointer-events:none !important;
+  filter:grayscale(.2);
+  transform:none !important;
+  box-shadow:none !important;
+}
+
 </style>
 </head>
 
@@ -771,23 +1369,20 @@ footer a {
     </a>
 
     <nav aria-label="Navegação principal">
-      <a href="#">INÍCIO</a>
+      <a href="#" class="active">INÍCIO</a>
       <a href="#sobre">SOBRE NÓS</a>
       <a href="#servicos">SERVIÇOS</a>
       <a href="#vantagens">VANTAGENS</a>
       <a href="#contactos">CONTACTOS</a>
     </nav>
 
-    <a class="whatsapp wa-button" href="https://wa.me/351964978574" target="_blank" rel="noopener">
-      <span class="wa-icon" aria-hidden="true">
+    <a class="whatsapp whatsapp-button" href="https://wa.me/351964978574" target="_blank" rel="noopener" aria-label="Falar com a GesLimp pelo WhatsApp">
+      <span class="whatsapp-mark" aria-hidden="true">
 <svg viewBox="0 0 32 32" focusable="false">
-  <circle cx="16" cy="15.4" r="11.2" fill="none" stroke="currentColor" stroke-width="2.2"/>
-  <path d="M9.9 25.1 8.6 28l3.4-.9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M12.1 10.8c.35-.35.9-.35 1.2.03l1.55 1.92c.28.35.26.85-.06 1.16l-.85.82c-.22.21-.27.54-.12.8.83 1.48 1.99 2.64 3.47 3.47.27.15.6.1.81-.12l.81-.85c.31-.32.82-.35 1.16-.06l1.92 1.55c.38.31.39.85.03 1.2l-.93.91c-.81.79-2.02 1.04-3.08.63-4.23-1.61-7.57-4.95-9.18-9.18-.41-1.06-.16-2.27.63-3.08l.91-.93Z"
-        fill="currentColor"/>
+  <path d="M16.02 3.2c-7.05 0-12.78 5.72-12.78 12.77 0 2.25.59 4.45 1.71 6.39L3.14 28.8l6.59-1.73a12.74 12.74 0 0 0 6.28 1.6h.01c7.04 0 12.77-5.73 12.77-12.78 0-3.41-1.33-6.62-3.74-9.03A12.69 12.69 0 0 0 16.02 3.2Zm0 23.31h-.01a10.6 10.6 0 0 1-5.4-1.48l-.39-.23-3.91 1.03 1.04-3.81-.25-.39a10.58 10.58 0 0 1-1.63-5.66c0-5.83 4.74-10.57 10.58-10.57 2.82 0 5.47 1.1 7.47 3.1a10.5 10.5 0 0 1 3.09 7.48c-.01 5.82-4.75 10.56-10.59 10.56Zm5.8-7.96c-.32-.16-1.89-.93-2.18-1.04-.29-.11-.5-.16-.71.16-.21.32-.82 1.04-1.01 1.25-.19.21-.37.24-.69.08-.32-.16-1.34-.49-2.56-1.57-.95-.84-1.59-1.88-1.78-2.2-.19-.32-.02-.49.14-.65.14-.14.32-.37.48-.56.16-.19.21-.32.32-.53.11-.21.05-.4-.03-.56-.08-.16-.71-1.72-.98-2.36-.26-.62-.52-.54-.71-.55h-.61c-.21 0-.56.08-.85.4-.29.32-1.11 1.09-1.11 2.65 0 1.57 1.14 3.08 1.3 3.29.16.21 2.24 3.42 5.43 4.8.76.33 1.35.53 1.81.68.76.24 1.45.21 2 .13.61-.09 1.89-.77 2.15-1.52.27-.75.27-1.39.19-1.52-.08-.13-.29-.21-.61-.37Z"/>
 </svg>
 </span>
-      FALAR PELO WHATSAPP
+      <span>FALAR PELO WHATSAPP</span>
     </a>
   </div>
 </header>
@@ -812,7 +1407,10 @@ footer a {
 
       <div class="actions">
         <a class="btn btn-green" href="#contactos">▣ PEDIR ORÇAMENTO</a>
-        <a class="btn btn-outline" href="tel:+351964978574">☎ 964 978 574</a>
+        <a class="btn calendar-button" href="#agendamento">
+          <span class="calendar-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 10h18"></path><path d="M8 14h3v3H8z"></path></svg></span><span>AGENDAR SERVIÇO</span>
+        </a>
+        
       </div>
     </div>
 
@@ -839,7 +1437,7 @@ footer a {
       <article class="card">
         <div class="icon">🌿</div>
         <h3>Limpeza profunda</h3>
-        <p>Limpeza profunda para casas e apartamentos, removendo sujidade, pó e impurezas e deixando o espaço renovado.</p>
+        <p>Limpeza detalhada para casas e apartamentos, removendo sujidade, pó e impurezas e deixando o espaço renovado.</p>
         <div class="mini-line"></div>
       </article>
 
@@ -911,6 +1509,133 @@ footer a {
   </div>
 </section>
 
+
+
+<section class="booking-section" id="agendamento">
+  <div class="container booking-wrap">
+    <div class="section-head">
+      <div class="kicker">Agendamento online</div>
+      <h2>Agende o seu serviço</h2>
+      <div class="rule"></div>
+      <p class="booking-intro">
+        Escolha o serviço, a data pretendida e deixe-nos os seus contactos.
+      </p>
+    </div>
+
+    <div class="booking-app">
+      <div class="booking-left">
+        <div class="field-group">
+          <label for="serviceType">Tipo de serviço</label>
+          <select id="serviceType">
+            <option value="Limpeza profunda">Limpeza profunda</option>
+            <option value="Limpeza pós-obra">Limpeza pós-obra</option>
+            <option value="Condomínio">Condomínio</option>
+            <option value="Empresa">Empresa</option>
+            <option value="Serviço personalizado">Serviço personalizado</option>
+          </select>
+        </div>
+
+        <div class="calendar-card">
+          <div class="calendar-loading-overlay" id="calendarLoadingOverlay" hidden>
+            <div class="calendar-loading-box" role="status" aria-live="polite">
+              <span class="calendar-spinner" aria-hidden="true"></span>
+              <strong>A carregar disponibilidade…</strong>
+              <span>Aguarde um momento.</span>
+            </div>
+          </div>
+          <div class="calendar-head">
+            <button type="button" class="cal-nav" id="prevMonth" aria-label="Mês anterior">‹</button>
+            <div id="monthLabel" class="month-label"></div>
+            <button type="button" class="cal-nav" id="nextMonth" aria-label="Mês seguinte">›</button>
+          </div>
+
+          <div class="weekday-row">
+            <span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span><span>Dom</span>
+          </div>
+
+          <div id="calendarGrid" class="calendar-grid" aria-label="Calendário de marcação"></div>
+        <div class="no-availability-message" id="noAvailabilityMessage" hidden>
+          <strong>De momento não existem datas disponíveis neste mês.</strong>
+          <span>Consulte o mês seguinte ou fale connosco pelo WhatsApp para encontrarmos uma alternativa.</span>
+        </div>
+        </div>
+
+        <div class="field-group">
+          <label for="timeSlot">Período pretendido</label>
+          <select id="timeSlot">
+            <option value="">Selecione um período</option>
+            <option>09:00</option>
+            <option>10:00</option>
+            <option>11:00</option>
+            <option>12:00</option>
+            <option>14:00</option>
+            <option>15:00</option>
+            <option>16:00</option>
+            <option>17:00</option>
+          </select>
+          <p class="field-note">São apresentados apenas os períodos do dia em que existe disponibilidade real.</p>
+        </div>
+      </div>
+
+      <form class="booking-form" id="bookingForm">
+        <div class="form-title">Os seus dados</div>
+
+        <div class="field-group">
+          <label for="clientName">Nome</label>
+          <input id="clientName" name="clientName" type="text" autocomplete="name" required>
+        </div>
+
+        <div class="field-group">
+          <label for="clientPhone">Telemóvel</label>
+          <input id="clientPhone" name="clientPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="9XX XXX XXX" required>
+        </div>
+
+        <div class="field-group">
+          <label for="clientEmail">Email</label>
+          <input id="clientEmail" name="clientEmail" type="email" autocomplete="email" required>
+        </div>
+
+        <div class="field-group">
+          <label for="clientAddress">Morada / Localidade</label>
+          <input id="clientAddress" name="clientAddress" type="text" autocomplete="street-address" required>
+        </div>
+
+        <div class="field-group">
+          <label for="clientNotes">Observações</label>
+          <textarea id="clientNotes" name="clientNotes" rows="4" placeholder="Ex.: dimensão do espaço, tipo de obra, acessos, etc."></textarea>
+          <small id="personalizadoRequiredHint" class="personalizado-required-hint" hidden>
+            Obrigatório para Serviço Personalizado.
+          </small>
+        </div>
+
+        <div class="booking-summary" id="bookingSummary">
+          <strong>Data selecionada:</strong>
+          <span id="selectedDateLabel">Ainda não selecionada</span>
+        </div>
+
+        <button type="submit" id="bookingSubmit" class="btn btn-green booking-submit" disabled>PEDIR AGENDAMENTO</button>
+
+        <p class="booking-status" id="bookingStatus" role="status" aria-live="polite"></p>
+      </form>
+    </div>
+  </div>
+
+<div class="booking-whatsapp-help">
+  <p><strong>Não encontrou a disponibilidade ideal para si?</strong></p>
+  <p>Fale connosco pelo WhatsApp e procuramos consigo a melhor opção.</p>
+  <a class="booking-whatsapp-link whatsapp-button" href="https://wa.me/351964978574" target="_blank" rel="noopener noreferrer" aria-label="Falar com a GesLimp pelo WhatsApp">
+    <span class="whatsapp-mark" aria-hidden="true">
+<svg viewBox="0 0 32 32" focusable="false">
+  <path d="M16.02 3.2c-7.05 0-12.78 5.72-12.78 12.77 0 2.25.59 4.45 1.71 6.39L3.14 28.8l6.59-1.73a12.74 12.74 0 0 0 6.28 1.6h.01c7.04 0 12.77-5.73 12.77-12.78 0-3.41-1.33-6.62-3.74-9.03A12.69 12.69 0 0 0 16.02 3.2Zm0 23.31h-.01a10.6 10.6 0 0 1-5.4-1.48l-.39-.23-3.91 1.03 1.04-3.81-.25-.39a10.58 10.58 0 0 1-1.63-5.66c0-5.83 4.74-10.57 10.58-10.57 2.82 0 5.47 1.1 7.47 3.1a10.5 10.5 0 0 1 3.09 7.48c-.01 5.82-4.75 10.56-10.59 10.56Zm5.8-7.96c-.32-.16-1.89-.93-2.18-1.04-.29-.11-.5-.16-.71.16-.21.32-.82 1.04-1.01 1.25-.19.21-.37.24-.69.08-.32-.16-1.34-.49-2.56-1.57-.95-.84-1.59-1.88-1.78-2.2-.19-.32-.02-.49.14-.65.14-.14.32-.37.48-.56.16-.19.21-.32.32-.53.11-.21.05-.4-.03-.56-.08-.16-.71-1.72-.98-2.36-.26-.62-.52-.54-.71-.55h-.61c-.21 0-.56.08-.85.4-.29.32-1.11 1.09-1.11 2.65 0 1.57 1.14 3.08 1.3 3.29.16.21 2.24 3.42 5.43 4.8.76.33 1.35.53 1.81.68.76.24 1.45.21 2 .13.61-.09 1.89-.77 2.15-1.52.27-.75.27-1.39.19-1.52-.08-.13-.29-.21-.61-.37Z"/>
+</svg>
+</span>
+    <span>FALAR PELO WHATSAPP</span>
+  </a>
+</div>
+
+</section>
+
+
 <section class="cta" id="contactos">
   <div class="container cta-row">
 
@@ -919,16 +1644,13 @@ footer a {
       <p>Entre em contacto connosco e diga-nos o que precisa.</p>
     </div>
 
-    <a class="btn wa-button" href="https://wa.me/351964978574" target="_blank" rel="noopener">
-      <span class="wa-icon" aria-hidden="true">
+    <a class="btn whatsapp-button" href="https://wa.me/351964978574" target="_blank" rel="noopener" aria-label="Falar com a GesLimp pelo WhatsApp">
+      <span class="whatsapp-mark" aria-hidden="true">
 <svg viewBox="0 0 32 32" focusable="false">
-  <circle cx="16" cy="15.4" r="11.2" fill="none" stroke="currentColor" stroke-width="2.2"/>
-  <path d="M9.9 25.1 8.6 28l3.4-.9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M12.1 10.8c.35-.35.9-.35 1.2.03l1.55 1.92c.28.35.26.85-.06 1.16l-.85.82c-.22.21-.27.54-.12.8.83 1.48 1.99 2.64 3.47 3.47.27.15.6.1.81-.12l.81-.85c.31-.32.82-.35 1.16-.06l1.92 1.55c.38.31.39.85.03 1.2l-.93.91c-.81.79-2.02 1.04-3.08.63-4.23-1.61-7.57-4.95-9.18-9.18-.41-1.06-.16-2.27.63-3.08l.91-.93Z"
-        fill="currentColor"/>
+  <path d="M16.02 3.2c-7.05 0-12.78 5.72-12.78 12.77 0 2.25.59 4.45 1.71 6.39L3.14 28.8l6.59-1.73a12.74 12.74 0 0 0 6.28 1.6h.01c7.04 0 12.77-5.73 12.77-12.78 0-3.41-1.33-6.62-3.74-9.03A12.69 12.69 0 0 0 16.02 3.2Zm0 23.31h-.01a10.6 10.6 0 0 1-5.4-1.48l-.39-.23-3.91 1.03 1.04-3.81-.25-.39a10.58 10.58 0 0 1-1.63-5.66c0-5.83 4.74-10.57 10.58-10.57 2.82 0 5.47 1.1 7.47 3.1a10.5 10.5 0 0 1 3.09 7.48c-.01 5.82-4.75 10.56-10.59 10.56Zm5.8-7.96c-.32-.16-1.89-.93-2.18-1.04-.29-.11-.5-.16-.71.16-.21.32-.82 1.04-1.01 1.25-.19.21-.37.24-.69.08-.32-.16-1.34-.49-2.56-1.57-.95-.84-1.59-1.88-1.78-2.2-.19-.32-.02-.49.14-.65.14-.14.32-.37.48-.56.16-.19.21-.32.32-.53.11-.21.05-.4-.03-.56-.08-.16-.71-1.72-.98-2.36-.26-.62-.52-.54-.71-.55h-.61c-.21 0-.56.08-.85.4-.29.32-1.11 1.09-1.11 2.65 0 1.57 1.14 3.08 1.3 3.29.16.21 2.24 3.42 5.43 4.8.76.33 1.35.53 1.81.68.76.24 1.45.21 2 .13.61-.09 1.89-.77 2.15-1.52.27-.75.27-1.39.19-1.52-.08-.13-.29-.21-.61-.37Z"/>
 </svg>
 </span>
-      FALAR PELO WHATSAPP
+      <span>FALAR PELO WHATSAPP</span>
     </a>
 
   </div>
@@ -970,9 +1692,8 @@ footer a {
       </div>
 
       <div>
-        <h4>Horário</h4>
-        <p>Segunda a Sexta<br>09h00 – 18h00</p>
-        <p>Sábado<br>09h00 – 13h00</p>
+        <h4>AGENDAMENTOS</h4>
+        <p>Serviços mediante disponibilidade.</p>
       </div>
 
       <div>
@@ -987,6 +1708,672 @@ footer a {
 
   </div>
 </footer>
+
+
+<div class="booking-success-modal" id="bookingSuccessModal" role="dialog" aria-modal="true" aria-labelledby="bookingSuccessTitle">
+  <div class="booking-success-box">
+    <div class="booking-success-icon">✓</div>
+    <h3 id="bookingSuccessTitle">Pedido recebido!</h3>
+    <p>
+      O seu pedido de agendamento foi registado com sucesso.
+      A GesLimp entrará em contacto consigo para confirmar os detalhes do serviço.
+    </p>
+    <button type="button" class="btn btn-green booking-success-close" id="bookingSuccessClose">OK</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const API_URL = "https://script.google.com/macros/s/AKfycbw3LprnG22RMDj6H6FBdNH5Xk22nvPATwgMVVNAOAyx3Cp-ysxicb7hWmq0fQkqqOgBFw/exec";
+  function showSuccessModal(){
+    const successModal = document.getElementById("bookingSuccessModal");
+    if(successModal){
+      successModal.classList.add("show");
+      document.body.style.overflow = "hidden";
+      const closeButton = document.getElementById("bookingSuccessClose");
+      if(closeButton) closeButton.focus();
+    }
+  }
+
+  function closeSuccessModal(){
+    const successModal = document.getElementById("bookingSuccessModal");
+    if(successModal){
+      successModal.classList.remove("show");
+      document.body.style.overflow = "";
+    }
+  }
+
+  const successModal = document.getElementById("bookingSuccessModal");
+  const successClose = document.getElementById("bookingSuccessClose");
+
+  if(successClose){
+    successClose.addEventListener("click", closeSuccessModal);
+  }
+
+  if(successModal){
+    successModal.addEventListener("click", function(e){
+      if(e.target === successModal) closeSuccessModal();
+    });
+  }
+
+  document.addEventListener("keydown", function(e){
+    if(e.key === "Escape"){
+      closeSuccessModal();
+    }
+  });
+
+
+  const grid = document.getElementById("calendarGrid");
+  const monthLabel = document.getElementById("monthLabel");
+  const prevBtn = document.getElementById("prevMonth");
+  const nextBtn = document.getElementById("nextMonth");
+  const selectedLabel = document.getElementById("selectedDateLabel");
+  const form = document.getElementById("bookingForm");
+  const status = document.getElementById("bookingStatus");
+  const timeSlot = document.getElementById("timeSlot");
+  const calendarLoadingOverlay = document.getElementById("calendarLoadingOverlay");
+  const noAvailabilityMessage = document.getElementById("noAvailabilityMessage");
+  const serviceType = document.getElementById("serviceType");
+  const clientNotes = document.getElementById("clientNotes");
+  const personalizadoRequiredHint = document.getElementById("personalizadoRequiredHint");
+
+  function isServicoPersonalizado(){
+    if(!serviceType) return false;
+    const option = serviceType.options[serviceType.selectedIndex];
+    const texto = ((option && option.textContent) || serviceType.value || "").toLowerCase();
+    return texto.includes("personalizado");
+  }
+
+  function updatePersonalizadoRequirement(){
+    const required = isServicoPersonalizado();
+
+    if(clientNotes){
+      clientNotes.required = required;
+      clientNotes.setAttribute(
+        "aria-required",
+        required ? "true" : "false"
+      );
+
+      if(required){
+        clientNotes.placeholder = "Descreva o serviço personalizado pretendido *";
+      }else{
+        clientNotes.placeholder = "Observações";
+      }
+    }
+
+    if(personalizadoRequiredHint){
+      personalizadoRequiredHint.hidden = !required;
+    }
+
+    if(typeof updateBookingSubmitState === "function"){
+      updateBookingSubmitState();
+    }
+  }
+
+  if(clientNotes){
+    clientNotes.addEventListener("input", function(){
+      if(clientNotes.value.trim()){
+        clientNotes.setCustomValidity("");
+      }
+    });
+  }
+
+  if(serviceType){
+    serviceType.addEventListener("change", updatePersonalizadoRequirement);
+  }
+
+
+  if(!grid || !monthLabel || !prevBtn || !nextBtn || !selectedLabel || !form || !timeSlot) return;
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  let viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
+  let selectedDate = null;
+  const bookingSubmit = document.getElementById("bookingSubmit");
+  const clientName = document.getElementById("clientName");
+  const clientPhone = document.getElementById("clientPhone");
+  const clientEmail = document.getElementById("clientEmail");
+  const clientAddress = document.getElementById("clientAddress");
+
+  function bookingFormIsComplete(){
+    const personalizado = isServicoPersonalizado();
+
+    const obrigatoriosPreenchidos =
+      clientName && clientName.value.trim() &&
+      clientPhone && clientPhone.value.trim() &&
+      clientEmail && clientEmail.value.trim() &&
+      clientAddress && clientAddress.value.trim() &&
+      selectedDate &&
+      timeSlot && timeSlot.value;
+
+    const emailValido =
+      clientEmail && clientEmail.validity.valid;
+
+    const observacoesValidas =
+      !personalizado ||
+      (clientNotes && clientNotes.value.trim());
+
+    return Boolean(
+      obrigatoriosPreenchidos &&
+      emailValido &&
+      observacoesValidas
+    );
+  }
+
+  function updateBookingSubmitState(){
+    if(bookingSubmit){
+      bookingSubmit.disabled = !bookingFormIsComplete();
+    }
+  }
+
+  [clientName, clientPhone, clientEmail, clientAddress, clientNotes].forEach(function(field){
+    if(field){
+      field.addEventListener("input", updateBookingSubmitState);
+      field.addEventListener("change", updateBookingSubmitState);
+    }
+  });
+
+  if(timeSlot){
+    timeSlot.addEventListener("change", updateBookingSubmitState);
+  }
+
+  if(serviceType){
+    serviceType.addEventListener("change", updateBookingSubmitState);
+  }
+
+  updatePersonalizadoRequirement();
+  updateBookingSubmitState();
+
+  let monthSlots = {};
+
+  const fmtMonth = new Intl.DateTimeFormat("pt-PT", {month:"long", year:"numeric"});
+  const fmtDate = new Intl.DateTimeFormat("pt-PT", {weekday:"long", day:"2-digit", month:"long", year:"numeric"});
+  const fmtTime = new Intl.DateTimeFormat("pt-PT", {hour:"2-digit", minute:"2-digit", hour12:false});
+
+  function pad(n){
+    return String(n).padStart(2,"0");
+  }
+
+  function dateKey(date){
+    return date.getFullYear()+"-"+pad(date.getMonth()+1)+"-"+pad(date.getDate());
+  }
+
+  function setStatus(message, type=""){
+    status.textContent = message;
+    status.className = "booking-status" + (type ? " " + type : "");
+  }
+
+  function toIsoLocalStart(date){
+    return date.getFullYear()+"-"+pad(date.getMonth()+1)+"-"+pad(date.getDate())+"T00:00:00.000Z";
+  }
+
+  function toIsoLocalEnd(date){
+    return date.getFullYear()+"-"+pad(date.getMonth()+1)+"-"+pad(date.getDate())+"T23:59:59.999Z";
+  }
+
+  function normalizeSlots(data){
+    const result = {};
+
+    // Cal.com API v2 commonly returns an object keyed by YYYY-MM-DD,
+    // with each value being an array of slot objects containing "time".
+    if(data && typeof data === "object" && !Array.isArray(data)){
+      Object.keys(data).forEach(function(key){
+        const value = data[key];
+
+        if(Array.isArray(value)){
+          result[key] = value.map(function(item){
+            if(typeof item === "string") return item;
+            if(item && item.time) return item.time;
+            if(item && item.start) return item.start;
+            return null;
+          }).filter(Boolean);
+        }
+      });
+
+      // Fallback: some wrappers may return { slots: {date:[...]} }
+      if(data.slots && typeof data.slots === "object"){
+        Object.keys(data.slots).forEach(function(key){
+          const value = data.slots[key];
+          if(Array.isArray(value)){
+            result[key] = value.map(function(item){
+              if(typeof item === "string") return item;
+              if(item && item.time) return item.time;
+              if(item && item.start) return item.start;
+              return null;
+            }).filter(Boolean);
+          }
+        });
+      }
+    }
+
+    return result;
+  }
+
+  
+  function showCalendarLoading(){
+    if(calendarLoadingOverlay){
+      calendarLoadingOverlay.hidden = false;
+    }
+  }
+
+  function hideCalendarLoading(){
+    if(calendarLoadingOverlay){
+      calendarLoadingOverlay.hidden = true;
+    }
+  }
+
+async function loadMonthAvailability(){
+    grid.classList.add("loading");
+    showCalendarLoading();
+    setStatus("A consultar disponibilidade...");
+
+    const first = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
+    const last = new Date(viewDate.getFullYear(), viewDate.getMonth()+1, 0);
+
+    try{
+      const url = API_URL +
+        "?action=availability" +
+        "&start=" + encodeURIComponent(toIsoLocalStart(first)) +
+        "&end=" + encodeURIComponent(toIsoLocalEnd(last));
+
+      const response = await fetch(url, {method:"GET", redirect:"follow"});
+      if(!response.ok) throw new Error("Não foi possível consultar a disponibilidade.");
+
+      const payload = await response.json();
+      if(!payload.success) throw new Error(payload.message || "Não foi possível consultar a disponibilidade.");
+
+      monthSlots = normalizeSlots(payload.data);
+      setStatus("");
+      renderCalendar();
+
+    } catch(error){
+      monthSlots = {};
+      setStatus("Não foi possível carregar a disponibilidade. Tente novamente.", "error");
+      renderCalendar();
+      console.error(error);
+    } finally {
+      grid.classList.remove("loading");
+      hideCalendarLoading();
+    }
+  }
+
+  function renderCalendar(){
+    grid.innerHTML = "";
+    monthLabel.textContent = fmtMonth.format(viewDate);
+
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    const first = new Date(year, month, 1);
+    const last = new Date(year, month+1, 0);
+    let availableDaysCount = 0;
+
+    let offset = first.getDay()-1;
+    if(offset < 0) offset = 6;
+
+    for(let i=0;i<offset;i++){
+      const blank = document.createElement("button");
+      blank.type = "button";
+      blank.className = "day-cell empty";
+      blank.tabIndex = -1;
+      grid.appendChild(blank);
+    }
+
+    for(let day=1; day<=last.getDate(); day++){
+      const date = new Date(year, month, day);
+      const key = dateKey(date);
+      const slots = monthSlots[key] || [];
+      const btn = document.createElement("button");
+
+      btn.type = "button";
+      btn.className = "day-cell";
+      btn.textContent = day;
+
+      const unavailable = date < today || slots.length === 0;
+      btn.disabled = unavailable;
+
+      if(slots.length > 0 && date >= today){
+        availableDaysCount++;
+        btn.classList.add("available");
+        btn.setAttribute("aria-label", day + " disponível");
+      }
+
+      if(selectedDate && dateKey(selectedDate) === key){
+        btn.classList.add("selected");
+      }
+
+      btn.addEventListener("click", function(){
+        const isAlreadySelected =
+          selectedDate && dateKey(selectedDate) === key;
+
+        if(isAlreadySelected){
+          // Segundo clique na mesma data: retirar a seleção.
+          selectedDate = null;
+          selectedLabel.textContent = "Ainda não selecionada";
+          timeSlot.innerHTML = '<option value="">Selecione primeiro uma data</option>';
+          timeSlot.disabled = true;
+        }else{
+          // Primeiro clique: selecionar normalmente.
+          selectedDate = date;
+          selectedLabel.textContent = fmtDate.format(date);
+          populateTimes(key);
+        }
+
+        renderCalendar();
+        updateBookingSubmitState();
+      });
+
+      grid.appendChild(btn);
+    }
+
+    if(noAvailabilityMessage){
+      noAvailabilityMessage.hidden = availableDaysCount > 0;
+    }
+
+    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const viewedMonthStart = new Date(year, month, 1);
+    prevBtn.disabled = viewedMonthStart <= currentMonthStart;
+  }
+
+  function populateTimes(key){
+    const slots = (monthSlots[key] || []).slice().sort(function(a,b){
+      return new Date(a) - new Date(b);
+    });
+
+    timeSlot.innerHTML = '<option value="">Selecione um período</option>';
+
+    if(slots.length === 0){
+      timeSlot.innerHTML = '<option value="">Sem períodos disponíveis</option>';
+      timeSlot.disabled = true;
+      return;
+    }
+
+    /*
+      A GesLimp trabalha com uma janela mínima de 4 horas.
+      O Cal.com devolve horas possíveis de INÍCIO, e não diretamente
+      a hora final da disponibilidade. Por isso reconstruímos a janela:
+      - início = primeiro slot devolvido
+      - fim = último slot devolvido + 4 horas
+    */
+    const SERVICE_DURATION_MINUTES = 240;
+
+    const lisboaFormatter = new Intl.DateTimeFormat("pt-PT", {
+      timeZone: "Europe/Lisbon",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    });
+
+    function getLisbonMinutes(value){
+      const date = value instanceof Date ? value : new Date(value);
+      const parts = lisboaFormatter.formatToParts(date);
+      const hourPart = parts.find(function(part){ return part.type === "hour"; });
+      const minutePart = parts.find(function(part){ return part.type === "minute"; });
+
+      let hour = hourPart ? Number(hourPart.value) : date.getHours();
+      const minute = minutePart ? Number(minutePart.value) : date.getMinutes();
+
+      // Alguns browsers podem representar meia-noite como 24:00.
+      if(hour === 24) hour = 0;
+
+      return hour * 60 + minute;
+    }
+
+    const firstSlotMinutes = getLisbonMinutes(slots[0]);
+    const lastSlotMinutes = getLisbonMinutes(slots[slots.length - 1]);
+
+    // Hora final real estimada da janela de disponibilidade.
+    const availabilityEndMinutes =
+      Math.min(24 * 60, lastSlotMinutes + SERVICE_DURATION_MINUTES);
+
+    const periodos = [
+      {
+        value:"MANHA",
+        label:"Parte da manhã",
+        inicio:9 * 60,
+        fim:13 * 60
+      },
+      {
+        value:"TARDE",
+        label:"Parte da tarde",
+        inicio:13 * 60,
+        fim:18 * 60
+      },
+      {
+        value:"NOITE",
+        label:"Parte da noite",
+        inicio:18 * 60,
+        fim:24 * 60
+      }
+    ];
+
+    periodos.forEach(function(periodo){
+      /*
+        O período aparece sempre que a janela total de disponibilidade
+        se cruza com esse período.
+        Exemplos:
+        09:00–17:00 -> manhã + tarde
+        09:00–23:00 -> manhã + tarde + noite
+        17:00–23:00 -> tarde + noite
+        18:00–23:00 -> noite
+      */
+      const intersects =
+        firstSlotMinutes < periodo.fim &&
+        availabilityEndMinutes > periodo.inicio;
+
+      if(!intersects) return;
+
+      /*
+        Para efetuar a reserva precisamos de enviar ao Cal.com um slot real.
+        Tentamos primeiro um slot dentro do próprio período.
+        Se o período fizer parte da janela mas não existir um início exato
+        nesse intervalo, usamos o slot real mais próximo possível.
+      */
+      let chosenSlot = slots.find(function(iso){
+        const mins = getLisbonMinutes(iso);
+        return mins >= periodo.inicio && mins < periodo.fim;
+      });
+
+      if(!chosenSlot){
+        chosenSlot = slots.find(function(iso){
+          return getLisbonMinutes(iso) >= periodo.inicio;
+        }) || slots[slots.length - 1];
+      }
+
+      const opt = document.createElement("option");
+      opt.value = chosenSlot;
+      opt.dataset.periodo = periodo.value;
+      opt.textContent = periodo.label;
+      timeSlot.appendChild(opt);
+    });
+
+    timeSlot.disabled = timeSlot.options.length <= 1;
+
+    if(timeSlot.disabled){
+      timeSlot.innerHTML = '<option value="">Sem períodos disponíveis</option>';
+    }
+  }
+
+  prevBtn.addEventListener("click", async function(){
+    const previous = new Date(viewDate.getFullYear(), viewDate.getMonth()-1, 1);
+    if(previous < new Date(today.getFullYear(), today.getMonth(), 1)) return;
+    viewDate = previous;
+    selectedDate = null;
+    selectedLabel.textContent = "Ainda não selecionada";
+    timeSlot.innerHTML = '<option value="">Selecione primeiro uma data</option>';
+    timeSlot.disabled = true;
+    await loadMonthAvailability();
+  });
+
+  nextBtn.addEventListener("click", async function(){
+    viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth()+1, 1);
+    selectedDate = null;
+    selectedLabel.textContent = "Ainda não selecionada";
+    timeSlot.innerHTML = '<option value="">Selecione primeiro uma data</option>';
+    timeSlot.disabled = true;
+    await loadMonthAvailability();
+  });
+
+  form.addEventListener("submit", async function(e){
+    e.preventDefault();
+
+    if(!selectedDate){
+      setStatus("Selecione primeiro uma data.", "error");
+      return;
+    }
+
+    if(!timeSlot.value){
+      setStatus("Selecione também um período.", "error");
+      return;
+    }
+
+    if(isServicoPersonalizado() && clientNotes && !clientNotes.value.trim()){
+      clientNotes.setCustomValidity("Descreva o serviço personalizado pretendido.");
+      clientNotes.reportValidity();
+      clientNotes.focus();
+      return;
+    }
+
+    if(clientNotes){
+      clientNotes.setCustomValidity("");
+    }
+
+    if(!form.reportValidity()) return;
+
+    const submitBtn = form.querySelector(".booking-submit");
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = "A MARCAR...";
+    setStatus("A confirmar a marcação...");
+
+    const payload = {
+      nome: document.getElementById("clientName").value.trim(),
+      telemovel: document.getElementById("clientPhone").value.trim(),
+      email: document.getElementById("clientEmail").value.trim(),
+      morada: document.getElementById("clientAddress").value.trim(),
+      servico: serviceType.value,
+      dataHora: timeSlot.value,
+      observacoes: document.getElementById("clientNotes").value.trim()
+    };
+
+    try{
+      const response = await fetch(API_URL, {
+        method:"POST",
+        headers:{"Content-Type":"text/plain;charset=utf-8"},
+        body:JSON.stringify(payload),
+        redirect:"follow"
+      });
+
+      if(!response.ok) throw new Error("Não foi possível criar a reserva.");
+
+      const data = await response.json();
+      if(!data.success) throw new Error(data.message || "Não foi possível criar a reserva.");
+
+      setStatus("Pedido de agendamento registado com sucesso.", "success");
+      showSuccessModal();
+      form.reset();
+      selectedDate = null;
+      selectedLabel.textContent = "Ainda não selecionada";
+      timeSlot.innerHTML = '<option value="">Selecione primeiro uma data</option>';
+      timeSlot.disabled = true;
+
+      await loadMonthAvailability();
+
+    } catch(error){
+      setStatus(error.message || "Não foi possível concluir a marcação.", "error");
+      console.error(error);
+      await loadMonthAvailability();
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
+    }
+  });
+
+  timeSlot.innerHTML = '<option value="">Selecione primeiro uma data</option>';
+  timeSlot.disabled = true;
+  loadMonthAvailability();
+})();
+
+</script>
+
+
+
+<script>
+(function(){
+  const menuLinks = Array.from(document.querySelectorAll('nav a[href^="#"]'));
+  let clickedLink = null;
+  let clickLockUntil = 0;
+
+  function setActive(link){
+    menuLinks.forEach(function(item){
+      item.classList.toggle("active", item === link);
+    });
+  }
+
+  function getTarget(link){
+    const href = link.getAttribute("href");
+    if(href === "#") return document.getElementById("inicio");
+    return document.querySelector(href);
+  }
+
+  menuLinks.forEach(function(link){
+    link.addEventListener("click", function(){
+      clickedLink = link;
+      clickLockUntil = Date.now() + 900;
+
+      /* O risco muda imediatamente no primeiro clique. */
+      setActive(link);
+
+      /* Depois do scroll terminar, volta a confirmar a opção escolhida. */
+      window.setTimeout(function(){
+        if(clickedLink === link){
+          setActive(link);
+          clickedLink = null;
+        }
+      }, 920);
+    });
+  });
+
+  const sections = menuLinks
+    .map(getTarget)
+    .filter(Boolean);
+
+  function updateActiveMenu(){
+    /*
+      Durante o scroll provocado por um clique não deixamos o evento scroll
+      voltar a selecionar temporariamente a secção anterior.
+    */
+    if(clickedLink && Date.now() < clickLockUntil){
+      setActive(clickedLink);
+      return;
+    }
+
+    const header = document.querySelector("header");
+    const offset = (header ? header.offsetHeight : 0) + 40;
+    let current = sections[0];
+
+    sections.forEach(function(section){
+      if(section.getBoundingClientRect().top <= offset){
+        current = section;
+      }
+    });
+
+    if(!current) return;
+
+    const currentId = current.id;
+    const matchingLink = menuLinks.find(function(link){
+      const href = link.getAttribute("href");
+      return (href === "#" && currentId === "inicio") || href === "#" + currentId;
+    });
+
+    if(matchingLink) setActive(matchingLink);
+  }
+
+  window.addEventListener("scroll", updateActiveMenu, {passive:true});
+  window.addEventListener("resize", updateActiveMenu);
+  updateActiveMenu();
+})();
+</script>
 
 </body>
 </html>
