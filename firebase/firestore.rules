@@ -35,18 +35,20 @@ service cloud.firestore {
           && existsAfter(/databases/$(database)/documents/clients/$(data.clientId))));
     }
     function validClient(data) {
-      return data.keys().hasOnly(['name','phone','email','address','postcode','city','type','service','serviceDetails','notes','updatedAt'])
-        && data.keys().hasAll(['name','phone','email','address','postcode','city','type','service','serviceDetails','notes','updatedAt'])
+      return data.keys().hasOnly(['name','phone','email','address','postcode','city','type','service','serviceDetails','notes','clientSince','createdAt','updatedAt'])
+        && data.keys().hasAll(['name','phone','email','address','postcode','city','type','service','serviceDetails','notes','clientSince','createdAt','updatedAt'])
         && data.name is string && data.name.size() > 0 && data.name.size() <= 100
-        && data.phone is string && data.phone.size() <= 40
+        && data.phone is string && data.phone.size() >= 7 && data.phone.size() <= 40 && data.phone.matches('.*[0-9].*')
         && data.email is string && data.email.size() <= 150
-        && data.address is string && data.address.size() <= 200
-        && data.postcode is string && (data.postcode == '' || data.postcode.matches('^[0-9]{4}-[0-9]{3}$'))
-        && data.city is string && data.city.size() <= 100
+        && data.address is string && data.address.size() <= 200 && data.address.matches('.*[^ ].*')
+        && data.postcode is string && data.postcode.matches('^[0-9]{4}-[0-9]{3}$')
+        && data.city is string && data.city.size() <= 100 && data.city.matches('.*[^ ].*')
         && data.type in ['', 'Particular', 'Profissional']
         && data['service'] in ['', 'Casa completa','Divisões específicas da casa','Condomínio','Escritório','Espaço comercial','Limpeza pós-obra','Outra limpeza']
         && data.serviceDetails is string && data.serviceDetails.size() <= 5000
         && data.notes is string && data.notes.size() <= 5000
+        && data.clientSince is string && validDay(data.clientSince)
+        && data.createdAt is timestamp
         && data.updatedAt == request.time;
     }
     match /admins/{uid} {
@@ -84,7 +86,35 @@ service cloud.firestore {
     }
     match /clients/{id} {
       allow read: if isAdmin();
-      allow create, update: if isAdmin() && validId(id) && validClient(request.resource.data);
+      allow create: if isAdmin() && validId(id) && validClient(request.resource.data)
+        && request.resource.data.createdAt == request.time;
+      allow update: if isAdmin() && validId(id) && validClient(request.resource.data)
+        && ('createdAt' in resource.data
+          ? request.resource.data.createdAt == resource.data.createdAt
+          : request.resource.data.createdAt == request.time);
+      allow delete: if false;
+    }
+    function validService(data) {
+      return data.keys().hasOnly(['clientId','title','serviceType','frequency','startDate','estimatedDuration','areas','notes','createdAt','updatedAt'])
+        && data.keys().hasAll(['clientId','title','serviceType','frequency','startDate','estimatedDuration','areas','notes','createdAt','updatedAt'])
+        && data.clientId is string && validId(data.clientId)
+        && exists(/databases/$(database)/documents/clients/$(data.clientId))
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 150
+        && data.serviceType in ['Casa completa','Divisões específicas da casa','Condomínio','Escritório','Espaço comercial','Limpeza pós-obra','Outra limpeza']
+        && data.frequency in ['Pontual','Diário','Semanal','Quinzenal','Mensal','Outro']
+        && data.startDate is string && validDay(data.startDate)
+        && data.estimatedDuration is string && data.estimatedDuration.size() <= 80
+        && data.areas is string && data.areas.size() <= 5000
+        && data.notes is string && data.notes.size() <= 5000
+        && data.createdAt is timestamp && data.updatedAt == request.time;
+    }
+    match /services/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && validId(id) && validService(request.resource.data)
+        && request.resource.data.createdAt == request.time;
+      allow update: if isAdmin() && validService(request.resource.data)
+        && request.resource.data.clientId == resource.data.clientId
+        && request.resource.data.createdAt == resource.data.createdAt;
       allow delete: if false;
     }
     // O site público será ligado numa fase posterior, com permissões específicas.
