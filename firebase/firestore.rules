@@ -120,7 +120,6 @@ service cloud.firestore {
           ? getAfter(/databases/$(database)/documents/availability/$(resource.data.day)).data.bookingId != id
           : getAfter(/databases/$(database)/documents/availability/$(resource.data.day)).data.bookingId == id);
       allow delete: if isAdmin() && resource.data.status == 'cancelada'
-        && timestamp.date(int(resource.data.day.split('-')[0]),int(resource.data.day.split('-')[1]),int(resource.data.day.split('-')[2])) < request.time - duration.value(1, 'd')
         && get(/databases/$(database)/documents/availability/$(resource.data.day)).data.bookingId != id;
     }
     match /clients/{id} {
@@ -157,8 +156,7 @@ service cloud.firestore {
       allow update: if isAdmin() && validService(request.resource.data)
         && request.resource.data.clientId == resource.data.clientId
         && request.resource.data.createdAt == resource.data.createdAt;
-      allow delete: if isAdmin() && resource.data.status == 'cancelado'
-        && timestamp.date(int((resource.data.get('endDate','') != '' ? resource.data.endDate : resource.data.startDate).split('-')[0]),int((resource.data.get('endDate','') != '' ? resource.data.endDate : resource.data.startDate).split('-')[1]),int((resource.data.get('endDate','') != '' ? resource.data.endDate : resource.data.startDate).split('-')[2])) < request.time - duration.value(1, 'd');
+      allow delete: if isAdmin() && resource.data.status == 'cancelado';
     }
     // Tudo o que não foi autorizado explicitamente continua privado.
     match /{document=**} { allow read, write: if false; }

@@ -1,18 +1,32 @@
 import {validDate,todayPortugal} from './client-dates.js';
 // Operações atómicas: nunca substituímos toda a base de dados com uma cópia do navegador.
 export function createDataStore(api, db) {
-  const { doc, collection, runTransaction, serverTimestamp } = api;
+  const { doc, collection, runTransaction, serverTimestamp, getDocsFromServer, query, where } = api;
   const shifts = ['Manhã', 'Tarde', 'Noite'];
   return {
     async deleteClient(id) {
-      // Admin-only deletion. Associated records are retained and checked by the UI.
-      await runTransaction(db,async tx=>{const ref=doc(db,'clients',id);const snap=await tx.get(ref);if(!snap.exists())throw Error('Ficha não encontrada.');tx.delete(ref);});
+      const groups=await Promise.all(['services','bookings'].map(name=>getDocsFromServer(query(collection(db,name),where('clientId','==',id)))));
+      const linked=groups.flatMap((snapshot,i)=>snapshot.docs.map(d=>({ref:doc(db,i===0?'services':'bookings',d.id),kind:i===0?'service':'booking'})));
+      if(linked.length>15)throw Error('Esta ficha tem muitos registos associados. Apaga primeiro alguns dos registos cancelados individualmente.');
+      await runTransaction(db,async tx=>{
+        const ref=doc(db,'clients',id),client=await tx.get(ref);
+        if(!client.exists())throw Error('Ficha não encontrada.');
+        const snapshots=[];
+        for(const item of linked)snapshots.push(await tx.get(item.ref));
+        for(let i=0;i<linked.length;i++){
+          const snap=snapshots[i];if(!snap.exists())continue;
+          const value=snap.data(),expected=linked[i].kind==='service'?'cancelado':'cancelada';
+          if(value.clientId!==id||value.status!==expected)throw Error('Existem serviços ou marcações por cancelar. Atualiza os dados e tenta novamente.');
+        }
+        for(const item of linked)tx.delete(item.ref);
+        tx.delete(ref);
+      });
     },
     async deleteCancelledBooking(id) {
-      await runTransaction(db,async tx=>{const ref=doc(db,'bookings',id);const snap=await tx.get(ref);if(!snap.exists()||snap.data().status!=='cancelada'||snap.data().day>=todayPortugal())throw Error('Só podes apagar marcações canceladas de dias passados.');const day=await tx.get(doc(db,'availability',snap.data().day));if(day.data()?.bookingId===id)throw Error('O dia ainda está ocupado por esta marcação.');tx.delete(ref);});
+      await runTransaction(db,async tx=>{const ref=doc(db,'bookings',id);const snap=await tx.get(ref);if(!snap.exists()||snap.data().status!=='cancelada')throw Error('Só podes apagar marcações canceladas.');const day=await tx.get(doc(db,'availability',snap.data().day));if(day.data()?.bookingId===id)throw Error('O dia ainda está ocupado por esta marcação.');tx.delete(ref);});
     },
     async deleteCancelledService(id) {
-      await runTransaction(db,async tx=>{const ref=doc(db,'services',id);const snap=await tx.get(ref);const s=snap.data();if(!snap.exists()||s.status!=='cancelado'||(s.endDate||s.startDate)>=todayPortugal())throw Error('Só podes apagar serviços cancelados de dias passados.');tx.delete(ref);});
+      await runTransaction(db,async tx=>{const ref=doc(db,'services',id);const snap=await tx.get(ref);if(!snap.exists()||snap.data().status!=='cancelado')throw Error('Só podes apagar serviços cancelados.');tx.delete(ref);});
     },
     async setDay(day, slots) {
       if (day < todayPortugal()) throw Error('Não é possível alterar a disponibilidade de dias passados.');
