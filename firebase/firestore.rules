@@ -23,7 +23,7 @@ service cloud.firestore {
       return booking.day == day && booking.status in ['pendente','confirmada'];
     }
     function validBooking(data, id) {
-      return data.keys().hasOnly(['name','day','shift','notes','status','createdAt','updatedAt','clientId'])
+      return data.keys().hasOnly(['name','day','shift','notes','status','createdAt','updatedAt','clientId','phone','email','address','postcode','city','requestedService','source','ownerUid'])
         && data.keys().hasAll(['name','day','shift','notes','status','createdAt','updatedAt'])
         && data.name is string && data.name.size() > 0 && data.name.size() <= 100
         && data.day is string && validDay(data.day)
@@ -51,26 +51,63 @@ service cloud.firestore {
         && data.createdAt is timestamp
         && data.updatedAt == request.time;
     }
+    function isVisitor() {
+      return request.auth != null && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
+    function validPublicBooking(data) {
+      return isVisitor()
+        && data.keys().hasOnly(['name','day','shift','notes','status','createdAt','updatedAt','phone','email','address','postcode','city','requestedService','source','ownerUid'])
+        && data.keys().hasAll(['phone','email','address','postcode','city','requestedService','source','ownerUid'])
+        && data.source == 'site' && data.ownerUid == request.auth.uid
+        && data.phone is string && data.phone.size() >= 7 && data.phone.size() <= 40 && data.phone.matches('.*[0-9].*')
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 150 && data.email.matches('.*@.*')
+        && data.address is string && data.address.size() <= 200 && data.address.matches('.*[^ ].*')
+        && data.postcode is string && data.postcode.matches('^[0-9]{4}-[0-9]{3}$')
+        && data.city is string && data.city.size() <= 100
+        && data.requestedService in ['Limpeza profunda','Limpeza pós-obra','Condomínio','Empresa','Serviço personalizado']
+        && (data.requestedService != 'Serviço personalizado' || data.notes.size() > 0);
+    }
+    function visitorCanBook(data) {
+      let day = get(/databases/$(database)/documents/availability/$(data.day)).data;
+      return validPublicBooking(data) && day.bookingId == ''
+        && ((data.shift == 'Manhã' && day.slots[0] == true)
+          || (data.shift == 'Tarde' && day.slots[1] == true)
+          || (data.shift == 'Noite' && day.slots[2] == true));
+    }
+    function visitorDayUpdate(day) {
+      let bookingId = request.resource.data.bookingId;
+      let booking = getAfter(/databases/$(database)/documents/bookings/$(bookingId)).data;
+      return isVisitor() && validId(bookingId)
+        && resource.data.bookingId == ''
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['bookingId','updatedAt'])
+        && !exists(/databases/$(database)/documents/bookings/$(bookingId))
+        && booking.day == day && booking.status == 'pendente'
+        && booking.ownerUid == request.auth.uid && booking.source == 'site'
+        && visitorCanBook(booking);
+    }
     match /admins/{uid} {
       // Só a consola/Admin SDK atribui este papel. Nenhum visitante pode promover a sua conta.
       allow get: if request.auth != null && request.auth.uid == uid;
       allow list, create, update, delete: if false;
     }
     match /availability/{day} {
-      allow read: if isAdmin();
+      // Estes documentos contêm apenas turnos, ocupação e data de atualização.
+      allow read: if true;
       allow create: if isAdmin() && validDay(day) && validAvailability(request.resource.data)
         && request.resource.data.bookingId == '';
-      allow update: if isAdmin() && validDay(day) && validAvailability(request.resource.data)
-        && (request.resource.data.bookingId == resource.data.bookingId
+      allow update: if validDay(day) && validAvailability(request.resource.data)
+        && ((isAdmin() && (request.resource.data.bookingId == resource.data.bookingId
           || (resource.data.bookingId == '' && validId(request.resource.data.bookingId)
               && matchingBookingAfter(request.resource.data.bookingId, day))
           || (request.resource.data.bookingId == ''
-              && getAfter(/databases/$(database)/documents/bookings/$(resource.data.bookingId)).data.status == 'cancelada'));
+              && getAfter(/databases/$(database)/documents/bookings/$(resource.data.bookingId)).data.status == 'cancelada')))
+          || visitorDayUpdate(day));
       allow delete: if false;
     }
     match /bookings/{id} {
       allow read: if isAdmin();
-      allow create: if isAdmin() && validId(id) && validBooking(request.resource.data,id)
+      allow create: if validId(id) && validBooking(request.resource.data,id)
+        && (isAdmin() || visitorCanBook(request.resource.data))
         && request.resource.data.status == 'pendente'
         && request.resource.data.createdAt == request.time
         && getAfter(/databases/$(database)/documents/availability/$(request.resource.data.day)).data.bookingId == id;
@@ -117,7 +154,7 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt;
       allow delete: if false;
     }
-    // O site público será ligado numa fase posterior, com permissões específicas.
+    // Tudo o que não foi autorizado explicitamente continua privado.
     match /{document=**} { allow read, write: if false; }
   }
 }

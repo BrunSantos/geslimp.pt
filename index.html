@@ -1349,14 +1349,78 @@ footer a {
   color:var(--muted);
 }
 
-.calendar-spinner{
-  width:34px;
-  height:34px;
-  border:3px solid #dce8ef;
-  border-top-color:var(--green);
-  border-radius:50%;
-  animation:calendarSpin .8s linear infinite;
+.calendar-broom{
+  position:relative;
+  display:block;
+  width:76px;
+  height:42px;
+  margin:0 auto 2px;
 }
+
+.calendar-broom .broom{
+  position:absolute;
+  left:25px;
+  top:1px;
+  font-size:30px;
+  line-height:1;
+  transform-origin:70% 75%;
+  animation:broomSweep 1.25s ease-in-out infinite;
+}
+
+.calendar-broom .dust{
+  position:absolute;
+  bottom:4px;
+  width:5px;
+  height:5px;
+  border-radius:50%;
+  background:#9aa8b3;
+  opacity:0;
+  animation:dustSweep 1.25s ease-out infinite;
+}
+
+.calendar-broom .dust:nth-child(2){
+  left:18px;
+  animation-delay:.05s;
+}
+
+.calendar-broom .dust:nth-child(3){
+  left:31px;
+  width:4px;
+  height:4px;
+  animation-delay:.14s;
+}
+
+.calendar-broom .dust:nth-child(4){
+  left:43px;
+  width:3px;
+  height:3px;
+  animation-delay:.22s;
+}
+
+@keyframes broomSweep{
+  0%,100%{
+    transform:translateX(-18px) rotate(-18deg);
+  }
+  50%{
+    transform:translateX(18px) rotate(12deg);
+  }
+}
+
+@keyframes dustSweep{
+  0%,25%{
+    transform:translate(0,0) scale(.7);
+    opacity:0;
+  }
+  45%{
+    opacity:.65;
+  }
+  100%{
+    transform:translate(24px,-7px) scale(.15);
+    opacity:0;
+  }
+}
+
+
 
 @keyframes calendarSpin{
   to{transform:rotate(360deg)}
@@ -1846,7 +1910,7 @@ footer .contact-line a{
       <a href="#contactos">CONTACTOS</a>
     </nav>
 
-    <a class="whatsapp whatsapp-button" href="https://wa.me/351926854730" target="_blank" rel="noopener" aria-label="Falar com a GesLimp pelo WhatsApp">
+    <a class="whatsapp whatsapp-button" href="https://wa.me/351964978574" target="_blank" rel="noopener" aria-label="Falar com a GesLimp pelo WhatsApp">
       <span class="whatsapp-mark" aria-hidden="true">
 <svg viewBox="0 0 32 32" focusable="false">
   <path d="M16.02 3.2c-7.05 0-12.78 5.72-12.78 12.77 0 2.25.59 4.45 1.71 6.39L3.14 28.8l6.59-1.73a12.74 12.74 0 0 0 6.28 1.6h.01c7.04 0 12.77-5.73 12.77-12.78 0-3.41-1.33-6.62-3.74-9.03A12.69 12.69 0 0 0 16.02 3.2Zm0 23.31h-.01a10.6 10.6 0 0 1-5.4-1.48l-.39-.23-3.91 1.03 1.04-3.81-.25-.39a10.58 10.58 0 0 1-1.63-5.66c0-5.83 4.74-10.57 10.58-10.57 2.82 0 5.47 1.1 7.47 3.1a10.5 10.5 0 0 1 3.09 7.48c-.01 5.82-4.75 10.56-10.59 10.56Zm5.8-7.96c-.32-.16-1.89-.93-2.18-1.04-.29-.11-.5-.16-.71.16-.21.32-.82 1.04-1.01 1.25-.19.21-.37.24-.69.08-.32-.16-1.34-.49-2.56-1.57-.95-.84-1.59-1.88-1.78-2.2-.19-.32-.02-.49.14-.65.14-.14.32-.37.48-.56.16-.19.21-.32.32-.53.11-.21.05-.4-.03-.56-.08-.16-.71-1.72-.98-2.36-.26-.62-.52-.54-.71-.55h-.61c-.21 0-.56.08-.85.4-.29.32-1.11 1.09-1.11 2.65 0 1.57 1.14 3.08 1.3 3.29.16.21 2.24 3.42 5.43 4.8.76.33 1.35.53 1.81.68.76.24 1.45.21 2 .13.61-.09 1.89-.77 2.15-1.52.27-.75.27-1.39.19-1.52-.08-.13-.29-.21-.61-.37Z"/>
@@ -2008,7 +2072,12 @@ footer .contact-line a{
         <div class="calendar-card">
           <div class="calendar-loading-overlay" id="calendarLoadingOverlay" hidden>
             <div class="calendar-loading-box" role="status" aria-live="polite">
-              <span class="calendar-spinner" aria-hidden="true"></span>
+              <span class="calendar-broom" aria-hidden="true">
+                <span class="broom">🧹</span>
+                <span class="dust"></span>
+                <span class="dust"></span>
+                <span class="dust"></span>
+              </span>
               <strong>A carregar disponibilidade…</strong>
               <span>Aguarde um momento.</span>
             </div>
@@ -2052,17 +2121,17 @@ footer .contact-line a{
 
         <div class="field-group">
           <label for="clientName">Nome</label>
-          <input id="clientName" name="clientName" type="text" autocomplete="name" required>
+          <input maxlength="100" id="clientName" name="clientName" type="text" autocomplete="name" required>
         </div>
 
         <div class="field-group">
           <label for="clientPhone">Telemóvel</label>
-          <input id="clientPhone" name="clientPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="9XX XXX XXX" required>
+          <input maxlength="40" id="clientPhone" name="clientPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="9XX XXX XXX" required>
         </div>
 
         <div class="field-group">
           <label for="clientEmail">Email</label>
-          <input id="clientEmail" name="clientEmail" type="email" autocomplete="email" required>
+          <input maxlength="150" id="clientEmail" name="clientEmail" type="email" autocomplete="email" required>
         </div>
 
         <div class="field-group postcode-wrap">
@@ -2078,7 +2147,7 @@ footer .contact-line a{
 
         <div class="field-group">
           <label for="clientAddress">Morada</label>
-          <input id="clientAddress" name="clientAddress" type="text"
+          <input maxlength="200" id="clientAddress" name="clientAddress" type="text"
                  autocomplete="street-address"
                  placeholder="Selecione uma morada ou escreva-a manualmente" required>
           <p class="field-note">Depois de escolher a rua, pode acrescentar número da porta, andar ou fração.</p>
@@ -2086,7 +2155,7 @@ footer .contact-line a{
 
         <div class="field-group">
           <label for="clientNotes">Observações</label>
-          <textarea id="clientNotes" name="clientNotes" rows="4" placeholder="Ex.: dimensão do espaço, tipo de obra, acessos, etc."></textarea>
+          <textarea maxlength="5000" id="clientNotes" name="clientNotes" rows="4" placeholder="Ex.: dimensão do espaço, tipo de obra, acessos, etc."></textarea>
           <small id="personalizadoRequiredHint" class="personalizado-required-hint" hidden>
             Obrigatório para Serviço Personalizado.
           </small>
@@ -2107,7 +2176,7 @@ footer .contact-line a{
 <div class="booking-whatsapp-help">
   <p><strong>Não encontrou a disponibilidade ideal para si?</strong></p>
   <p>Fale connosco pelo WhatsApp e procuramos consigo a melhor opção.</p>
-  <a class="booking-whatsapp-link whatsapp-button" href="https://wa.me/351" target="_blank" rel="noopener noreferrer" aria-label="Falar com a GesLimp pelo WhatsApp">
+  <a class="booking-whatsapp-link whatsapp-button" href="https://wa.me/351964978574" target="_blank" rel="noopener noreferrer" aria-label="Falar com a GesLimp pelo WhatsApp">
     <span class="whatsapp-mark" aria-hidden="true">
 <svg viewBox="0 0 32 32" focusable="false">
   <path d="M16.02 3.2c-7.05 0-12.78 5.72-12.78 12.77 0 2.25.59 4.45 1.71 6.39L3.14 28.8l6.59-1.73a12.74 12.74 0 0 0 6.28 1.6h.01c7.04 0 12.77-5.73 12.77-12.78 0-3.41-1.33-6.62-3.74-9.03A12.69 12.69 0 0 0 16.02 3.2Zm0 23.31h-.01a10.6 10.6 0 0 1-5.4-1.48l-.39-.23-3.91 1.03 1.04-3.81-.25-.39a10.58 10.58 0 0 1-1.63-5.66c0-5.83 4.74-10.57 10.58-10.57 2.82 0 5.47 1.1 7.47 3.1a10.5 10.5 0 0 1 3.09 7.48c-.01 5.82-4.75 10.56-10.59 10.56Zm5.8-7.96c-.32-.16-1.89-.93-2.18-1.04-.29-.11-.5-.16-.71.16-.21.32-.82 1.04-1.01 1.25-.19.21-.37.24-.69.08-.32-.16-1.34-.49-2.56-1.57-.95-.84-1.59-1.88-1.78-2.2-.19-.32-.02-.49.14-.65.14-.14.32-.37.48-.56.16-.19.21-.32.32-.53.11-.21.05-.4-.03-.56-.08-.16-.71-1.72-.98-2.36-.26-.62-.52-.54-.71-.55h-.61c-.21 0-.56.08-.85.4-.29.32-1.11 1.09-1.11 2.65 0 1.57 1.14 3.08 1.3 3.29.16.21 2.24 3.42 5.43 4.8.76.33 1.35.53 1.81.68.76.24 1.45.21 2 .13.61-.09 1.89-.77 2.15-1.52.27-.75.27-1.39.19-1.52-.08-.13-.29-.21-.61-.37Z"/>
@@ -2128,7 +2197,7 @@ footer .contact-line a{
       <p>Entre em contacto connosco e diga-nos o que precisa.</p>
     </div>
 
-    <a class="btn whatsapp-button" href="https://wa.me/351" target="_blank" rel="noopener" aria-label="Falar com a GesLimp pelo WhatsApp">
+    <a class="btn whatsapp-button" href="https://wa.me/351964978574" target="_blank" rel="noopener" aria-label="Falar com a GesLimp pelo WhatsApp">
       <span class="whatsapp-mark" aria-hidden="true">
 <svg viewBox="0 0 32 32" focusable="false">
   <path d="M16.02 3.2c-7.05 0-12.78 5.72-12.78 12.77 0 2.25.59 4.45 1.71 6.39L3.14 28.8l6.59-1.73a12.74 12.74 0 0 0 6.28 1.6h.01c7.04 0 12.77-5.73 12.77-12.78 0-3.41-1.33-6.62-3.74-9.03A12.69 12.69 0 0 0 16.02 3.2Zm0 23.31h-.01a10.6 10.6 0 0 1-5.4-1.48l-.39-.23-3.91 1.03 1.04-3.81-.25-.39a10.58 10.58 0 0 1-1.63-5.66c0-5.83 4.74-10.57 10.58-10.57 2.82 0 5.47 1.1 7.47 3.1a10.5 10.5 0 0 1 3.09 7.48c-.01 5.82-4.75 10.56-10.59 10.56Zm5.8-7.96c-.32-.16-1.89-.93-2.18-1.04-.29-.11-.5-.16-.71.16-.21.32-.82 1.04-1.01 1.25-.19.21-.37.24-.69.08-.32-.16-1.34-.49-2.56-1.57-.95-.84-1.59-1.88-1.78-2.2-.19-.32-.02-.49.14-.65.14-.14.32-.37.48-.56.16-.19.21-.32.32-.53.11-.21.05-.4-.03-.56-.08-.16-.71-1.72-.98-2.36-.26-.62-.52-.54-.71-.55h-.61c-.21 0-.56.08-.85.4-.29.32-1.11 1.09-1.11 2.65 0 1.57 1.14 3.08 1.3 3.29.16.21 2.24 3.42 5.43 4.8.76.33 1.35.53 1.81.68.76.24 1.45.21 2 .13.61-.09 1.89-.77 2.15-1.52.27-.75.27-1.39.19-1.52-.08-.13-.29-.21-.61-.37Z"/>
@@ -2161,7 +2230,7 @@ footer .contact-line a{
               <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L8 9.73a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92z"/>
             </svg>
           </span>
-          <a href="tel:+351">926 854 730</a>
+          <a href="tel:+351964978574">964 978 574</a>
         </p>
 
         <p class="contact-line">
@@ -2206,888 +2275,7 @@ footer .contact-line a{
   </div>
 </div>
 
-<script>
-(function(){
-  const API_URL = "https://script.google.com/macros/s/AKfycbxI2dA3y4SlAwRQa7t0kMjKsJlz04MBoBRvaztu9th1FmNpNtEE5RnmcjKk8l948mogVw/exec";
-  function showSuccessModal(){
-    const successModal = document.getElementById("bookingSuccessModal");
-    if(successModal){
-      successModal.classList.add("show");
-      document.body.style.overflow = "hidden";
-      const closeButton = document.getElementById("bookingSuccessClose");
-      if(closeButton) closeButton.focus();
-    }
-  }
-
-  function closeSuccessModal(){
-    const successModal = document.getElementById("bookingSuccessModal");
-    if(successModal){
-      successModal.classList.remove("show");
-      document.body.style.overflow = "";
-    }
-  }
-
-  const successModal = document.getElementById("bookingSuccessModal");
-  const successClose = document.getElementById("bookingSuccessClose");
-
-  if(successClose){
-    successClose.addEventListener("click", closeSuccessModal);
-  }
-
-  if(successModal){
-    successModal.addEventListener("click", function(e){
-      if(e.target === successModal) closeSuccessModal();
-    });
-  }
-
-  document.addEventListener("keydown", function(e){
-    if(e.key === "Escape"){
-      closeSuccessModal();
-    }
-  });
-
-
-  const grid = document.getElementById("calendarGrid");
-  const monthLabel = document.getElementById("monthLabel");
-  const prevBtn = document.getElementById("prevMonth");
-  const nextBtn = document.getElementById("nextMonth");
-  const selectedLabel = document.getElementById("selectedDateLabel");
-  const form = document.getElementById("bookingForm");
-  const status = document.getElementById("bookingStatus");
-  const timeSlot = document.getElementById("timeSlot");
-  const calendarLoadingOverlay = document.getElementById("calendarLoadingOverlay");
-  const noAvailabilityMessage = document.getElementById("noAvailabilityMessage");
-  const serviceType = document.getElementById("serviceType");
-  const clientNotes = document.getElementById("clientNotes");
-  const personalizadoRequiredHint = document.getElementById("personalizadoRequiredHint");
-
-  function isServicoPersonalizado(){
-    if(!serviceType) return false;
-    const option = serviceType.options[serviceType.selectedIndex];
-    const texto = ((option && option.textContent) || serviceType.value || "").toLowerCase();
-    return texto.includes("personalizado");
-  }
-
-  function updatePersonalizadoRequirement(){
-    const required = isServicoPersonalizado();
-
-    if(clientNotes){
-      clientNotes.required = required;
-      clientNotes.setAttribute(
-        "aria-required",
-        required ? "true" : "false"
-      );
-
-      if(required){
-        clientNotes.placeholder = "Descreva o serviço personalizado pretendido *";
-      }else{
-        clientNotes.placeholder = "Observações";
-      }
-    }
-
-    if(personalizadoRequiredHint){
-      personalizadoRequiredHint.hidden = !required;
-    }
-
-    if(typeof updateBookingSubmitState === "function"){
-      updateBookingSubmitState();
-    }
-  }
-
-  if(clientNotes){
-    clientNotes.addEventListener("input", function(){
-      if(clientNotes.value.trim()){
-        clientNotes.setCustomValidity("");
-      }
-    });
-  }
-
-  if(serviceType){
-    serviceType.addEventListener("change", updatePersonalizadoRequirement);
-  }
-
-
-  if(!grid || !monthLabel || !prevBtn || !nextBtn || !selectedLabel || !form || !timeSlot) return;
-
-  const today = new Date();
-  today.setHours(0,0,0,0);
-
-  let viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
-  let selectedDate = null;
-  const bookingSubmit = document.getElementById("bookingSubmit");
-  const clientName = document.getElementById("clientName");
-  const clientPhone = document.getElementById("clientPhone");
-  const clientEmail = document.getElementById("clientEmail");
-  const clientPostalCode = document.getElementById("clientPostalCode");
-  const clientAddress = document.getElementById("clientAddress");
-  const postcodeStatus = document.getElementById("postcodeStatus");
-  const addressSuggestions = document.getElementById("addressSuggestions");
-
-  function bookingFormIsComplete(){
-    const personalizado = isServicoPersonalizado();
-
-    const obrigatoriosPreenchidos =
-      clientName && clientName.value.trim() &&
-      clientPhone && clientPhone.value.trim() &&
-      clientEmail && clientEmail.value.trim() &&
-      clientPostalCode && /^\d{4}-\d{3}$/.test(clientPostalCode.value.trim()) &&
-      clientAddress && clientAddress.value.trim() &&
-      selectedDate &&
-      timeSlot && timeSlot.value;
-
-    const emailValido =
-      clientEmail && clientEmail.validity.valid;
-
-    const observacoesValidas =
-      !personalizado ||
-      (clientNotes && clientNotes.value.trim());
-
-    return Boolean(
-      obrigatoriosPreenchidos &&
-      emailValido &&
-      observacoesValidas
-    );
-  }
-
-  function updateBookingSubmitState(){
-    if(bookingSubmit){
-      bookingSubmit.disabled = !bookingFormIsComplete();
-    }
-  }
-
-  [clientName, clientPhone, clientEmail, clientPostalCode, clientAddress, clientNotes].forEach(function(field){
-    if(field){
-      field.addEventListener("input", updateBookingSubmitState);
-      field.addEventListener("change", updateBookingSubmitState);
-    }
-  });
-
-  if(timeSlot){
-    timeSlot.addEventListener("change", updateBookingSubmitState);
-  }
-
-  if(serviceType){
-    serviceType.addEventListener("change", updateBookingSubmitState);
-  }
-
-  // ---------------------------------------------------------
-  // Código postal + sugestão de morada (Portugal)
-  // GEO API PT: https://json.geoapi.pt/cp/1234-567
-  // ---------------------------------------------------------
-
-  let lastPostalLookup = "";
-  let postalLookupController = null;
-
-  function normalizePostalCode(value){
-    const digits = String(value || "").replace(/\D/g, "").slice(0, 7);
-    if(digits.length <= 4) return digits;
-    return digits.slice(0, 4) + "-" + digits.slice(4);
-  }
-
-  function setPostcodeStatus(message, type=""){
-    if(!postcodeStatus) return;
-    postcodeStatus.textContent = message || "";
-    postcodeStatus.classList.remove("error", "success");
-    if(type) postcodeStatus.classList.add(type);
-  }
-
-  function closeAddressSuggestions(){
-    if(!addressSuggestions) return;
-    addressSuggestions.classList.remove("is-open");
-    addressSuggestions.innerHTML = "";
-  }
-
-  function uniqueAddressOptions(data){
-    const options = [];
-    const seen = new Set();
-
-    const locality = String(
-      data.Localidade ||
-      data["Designação Postal"] ||
-      data.Concelho ||
-      ""
-    ).trim();
-
-    function addOption(street){
-      const rua = String(street || "").trim();
-      if(!rua) return;
-
-      const label = locality ? rua + " — " + locality : rua;
-      const key = label.toLocaleLowerCase("pt-PT");
-
-      if(seen.has(key)) return;
-      seen.add(key);
-
-      options.push({
-        street: rua,
-        locality: locality,
-        label: label
-      });
-    }
-
-    if(Array.isArray(data.partes)){
-      data.partes.forEach(function(item){
-        if(item && item["Artéria"]) addOption(item["Artéria"]);
-      });
-    }
-
-    if(Array.isArray(data.ruas)){
-      data.ruas.forEach(addOption);
-    }
-
-    if(!options.length && locality){
-      options.push({
-        street: "",
-        locality: locality,
-        label: locality
-      });
-    }
-
-    return options;
-  }
-
-  function renderAddressSuggestions(data, postalCode){
-    if(!addressSuggestions) return;
-
-    const options = uniqueAddressOptions(data);
-    addressSuggestions.innerHTML = "";
-
-    if(!options.length){
-      closeAddressSuggestions();
-      setPostcodeStatus(
-        "Código postal encontrado. Escreva a morada manualmente.",
-        "success"
-      );
-      return;
-    }
-
-    options.forEach(function(option){
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "address-suggestion";
-      button.setAttribute("role", "option");
-
-      const strong = document.createElement("strong");
-      strong.textContent = option.street || option.locality;
-
-      const small = document.createElement("small");
-      const details = [
-        option.locality,
-        postalCode,
-        data.Concelho
-      ].filter(Boolean);
-
-      small.textContent = [...new Set(details)].join(" · ");
-
-      button.appendChild(strong);
-      button.appendChild(small);
-
-      button.addEventListener("click", function(){
-        const addressParts = [];
-
-        if(option.street) addressParts.push(option.street);
-        if(option.locality) addressParts.push(option.locality);
-
-        clientAddress.value = addressParts.join(", ");
-        clientAddress.focus();
-        clientAddress.setSelectionRange(
-          clientAddress.value.length,
-          clientAddress.value.length
-        );
-
-        closeAddressSuggestions();
-        setPostcodeStatus("Morada selecionada. Pode acrescentar porta, andar ou fração.", "success");
-        updateBookingSubmitState();
-      });
-
-      addressSuggestions.appendChild(button);
-    });
-
-    addressSuggestions.classList.add("is-open");
-    setPostcodeStatus(
-      options.length === 1
-        ? "Encontrámos 1 opção de morada."
-        : "Encontrámos " + options.length + " opções. Escolha a sua morada.",
-      "success"
-    );
-  }
-
-  async function lookupPostalCode(postalCode){
-    if(!clientPostalCode) return;
-
-    if(postalLookupController){
-      postalLookupController.abort();
-    }
-
-    postalLookupController = new AbortController();
-
-    setPostcodeStatus("A procurar moradas...");
-    closeAddressSuggestions();
-
-    try{
-      const response = await fetch(
-        "https://json.geoapi.pt/cp/" + encodeURIComponent(postalCode),
-        {
-          method: "GET",
-          headers: { "Accept": "application/json" },
-          signal: postalLookupController.signal
-        }
-      );
-
-      if(!response.ok){
-        throw new Error("Código postal não encontrado.");
-      }
-
-      const data = await response.json();
-
-      if(!data || !data.CP){
-        throw new Error("Código postal não encontrado.");
-      }
-
-      renderAddressSuggestions(data, postalCode);
-
-    }catch(error){
-      if(error && error.name === "AbortError") return;
-
-      closeAddressSuggestions();
-      setPostcodeStatus(
-        "Não foi possível obter a morada automaticamente. Confirme o código postal e escreva a morada manualmente.",
-        "error"
-      );
-    }
-  }
-
-  if(clientPostalCode){
-    clientPostalCode.addEventListener("input", function(){
-      const formatted = normalizePostalCode(clientPostalCode.value);
-
-      if(clientPostalCode.value !== formatted){
-        clientPostalCode.value = formatted;
-      }
-
-      clientPostalCode.setCustomValidity("");
-      closeAddressSuggestions();
-      setPostcodeStatus("");
-
-      if(formatted.length === 8){
-        if(!/^\d{4}-\d{3}$/.test(formatted)){
-          clientPostalCode.setCustomValidity("Introduza um código postal no formato 1234-567.");
-          return;
-        }
-
-        if(lastPostalLookup !== formatted){
-          lastPostalLookup = formatted;
-          lookupPostalCode(formatted);
-        }
-      }else{
-        lastPostalLookup = "";
-      }
-
-      updateBookingSubmitState();
-    });
-
-    clientPostalCode.addEventListener("blur", function(){
-      if(clientPostalCode.value && !/^\d{4}-\d{3}$/.test(clientPostalCode.value.trim())){
-        clientPostalCode.setCustomValidity("Introduza os 7 dígitos do código postal.");
-      }else{
-        clientPostalCode.setCustomValidity("");
-      }
-    });
-  }
-
-  document.addEventListener("click", function(event){
-    if(
-      addressSuggestions &&
-      clientPostalCode &&
-      !addressSuggestions.contains(event.target) &&
-      event.target !== clientPostalCode
-    ){
-      addressSuggestions.classList.remove("is-open");
-    }
-  });
-
-  updatePersonalizadoRequirement();
-  updateBookingSubmitState();
-
-  let monthSlots = {};
-
-  const fmtMonth = new Intl.DateTimeFormat("pt-PT", {month:"long", year:"numeric"});
-  const fmtDate = new Intl.DateTimeFormat("pt-PT", {weekday:"long", day:"2-digit", month:"long", year:"numeric"});
-  const fmtTime = new Intl.DateTimeFormat("pt-PT", {hour:"2-digit", minute:"2-digit", hour12:false});
-
-  function pad(n){
-    return String(n).padStart(2,"0");
-  }
-
-  function dateKey(date){
-    return date.getFullYear()+"-"+pad(date.getMonth()+1)+"-"+pad(date.getDate());
-  }
-
-  function setStatus(message, type=""){
-    status.textContent = message;
-    status.className = "booking-status" + (type ? " " + type : "");
-  }
-
-  function toIsoLocalStart(date){
-    return date.getFullYear()+"-"+pad(date.getMonth()+1)+"-"+pad(date.getDate())+"T00:00:00.000Z";
-  }
-
-  function toIsoLocalEnd(date){
-    return date.getFullYear()+"-"+pad(date.getMonth()+1)+"-"+pad(date.getDate())+"T23:59:59.999Z";
-  }
-
-  function normalizeSlots(data){
-    const result = {};
-
-    // Cal.com API v2 commonly returns an object keyed by YYYY-MM-DD,
-    // with each value being an array of slot objects containing "time".
-    if(data && typeof data === "object" && !Array.isArray(data)){
-      Object.keys(data).forEach(function(key){
-        const value = data[key];
-
-        if(Array.isArray(value)){
-          result[key] = value.map(function(item){
-            if(typeof item === "string") return item;
-            if(item && item.time) return item.time;
-            if(item && item.start) return item.start;
-            return null;
-          }).filter(Boolean);
-        }
-      });
-
-      // Fallback: some wrappers may return { slots: {date:[...]} }
-      if(data.slots && typeof data.slots === "object"){
-        Object.keys(data.slots).forEach(function(key){
-          const value = data.slots[key];
-          if(Array.isArray(value)){
-            result[key] = value.map(function(item){
-              if(typeof item === "string") return item;
-              if(item && item.time) return item.time;
-              if(item && item.start) return item.start;
-              return null;
-            }).filter(Boolean);
-          }
-        });
-      }
-    }
-
-    return result;
-  }
-
-  
-  function showCalendarLoading(){
-    if(calendarLoadingOverlay){
-      calendarLoadingOverlay.hidden = false;
-    }
-  }
-
-  function hideCalendarLoading(){
-    if(calendarLoadingOverlay){
-      calendarLoadingOverlay.hidden = true;
-    }
-  }
-
-
-  function requestJSON(url){
-    /*
-      fetch funciona nos browsers modernos, mas em algumas versões/configurações
-      do Safari iOS os redirects do Google Apps Script podem falhar.
-      Este helper tenta fetch e, se falhar, usa XMLHttpRequest.
-    */
-    if(window.fetch){
-      return fetch(url, {
-        method:"GET",
-        cache:"no-store",
-        credentials:"omit"
-      })
-      .then(function(response){
-        if(!response.ok){
-          throw new Error("HTTP " + response.status);
-        }
-        return response.text();
-      })
-      .then(function(text){
-        return JSON.parse(text);
-      })
-      .catch(function(){
-        return requestJSONWithXHR(url);
-      });
-    }
-
-    return requestJSONWithXHR(url);
-  }
-
-  function requestJSONWithXHR(url){
-    return new Promise(function(resolve, reject){
-      const xhr = new XMLHttpRequest();
-      xhr.open("GET", url, true);
-      xhr.timeout = 15000;
-
-      xhr.onload = function(){
-        if(xhr.status >= 200 && xhr.status < 400){
-          try{
-            resolve(JSON.parse(xhr.responseText));
-          }catch(error){
-            reject(error);
-          }
-        }else{
-          reject(new Error("HTTP " + xhr.status));
-        }
-      };
-
-      xhr.onerror = function(){
-        reject(new Error("Erro de ligação."));
-      };
-
-      xhr.ontimeout = function(){
-        reject(new Error("Tempo de ligação excedido."));
-      };
-
-      xhr.send();
-    });
-  }
-
-async function loadMonthAvailability(){
-    grid.classList.add("loading");
-    showCalendarLoading();
-    setStatus("A consultar disponibilidade...");
-
-    const first = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
-    const last = new Date(viewDate.getFullYear(), viewDate.getMonth()+1, 0);
-
-    try{
-      const url = API_URL +
-        "?action=availability" +
-        "&start=" + encodeURIComponent(toIsoLocalStart(first)) +
-        "&end=" + encodeURIComponent(toIsoLocalEnd(last));
-
-      const payload = await requestJSON(url);
-
-      if(!payload || !payload.success){
-        throw new Error(
-          (payload && payload.message) ||
-          "Não foi possível consultar a disponibilidade."
-        );
-      }
-
-      monthSlots = normalizeSlots(payload.data);
-      setStatus("");
-      renderCalendar();
-
-    } catch(error){
-      monthSlots = {};
-      setStatus("Não foi possível carregar a disponibilidade. Tente novamente.", "error");
-      renderCalendar();
-      console.error(error);
-    } finally {
-      grid.classList.remove("loading");
-      hideCalendarLoading();
-    }
-  }
-
-  function renderCalendar(){
-    grid.innerHTML = "";
-    monthLabel.textContent = fmtMonth.format(viewDate);
-
-    const year = viewDate.getFullYear();
-    const month = viewDate.getMonth();
-    const first = new Date(year, month, 1);
-    const last = new Date(year, month+1, 0);
-    let availableDaysCount = 0;
-
-    let offset = first.getDay()-1;
-    if(offset < 0) offset = 6;
-
-    for(let i=0;i<offset;i++){
-      const blank = document.createElement("button");
-      blank.type = "button";
-      blank.className = "day-cell empty";
-      blank.tabIndex = -1;
-      grid.appendChild(blank);
-    }
-
-    for(let day=1; day<=last.getDate(); day++){
-      const date = new Date(year, month, day);
-      const key = dateKey(date);
-      const slots = monthSlots[key] || [];
-      const btn = document.createElement("button");
-
-      btn.type = "button";
-      btn.className = "day-cell";
-      btn.textContent = day;
-
-      const unavailable = date < today || slots.length === 0;
-      btn.disabled = unavailable;
-
-      if(slots.length > 0 && date >= today){
-        availableDaysCount++;
-        btn.classList.add("available");
-        btn.setAttribute("aria-label", day + " disponível");
-      }
-
-      if(selectedDate && dateKey(selectedDate) === key){
-        btn.classList.add("selected");
-      }
-
-      btn.addEventListener("click", function(){
-        const isAlreadySelected =
-          selectedDate && dateKey(selectedDate) === key;
-
-        if(isAlreadySelected){
-          // Segundo clique na mesma data: retirar a seleção.
-          selectedDate = null;
-          selectedLabel.textContent = "Ainda não selecionada";
-          timeSlot.innerHTML = '<option value="">Selecione primeiro uma data</option>';
-          timeSlot.disabled = true;
-        }else{
-          // Primeiro clique: selecionar normalmente.
-          selectedDate = date;
-          selectedLabel.textContent = fmtDate.format(date);
-          populateTimes(key);
-        }
-
-        renderCalendar();
-        updateBookingSubmitState();
-      });
-
-      grid.appendChild(btn);
-    }
-
-    if(noAvailabilityMessage){
-      noAvailabilityMessage.hidden = availableDaysCount > 0;
-    }
-
-    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    const viewedMonthStart = new Date(year, month, 1);
-    prevBtn.disabled = viewedMonthStart <= currentMonthStart;
-  }
-
-  function populateTimes(key){
-    const slots = (monthSlots[key] || []).slice().sort(function(a,b){
-      return new Date(a) - new Date(b);
-    });
-
-    timeSlot.innerHTML = '<option value="">Selecione um período</option>';
-
-    if(slots.length === 0){
-      timeSlot.innerHTML = '<option value="">Sem períodos disponíveis</option>';
-      timeSlot.disabled = true;
-      return;
-    }
-
-    /*
-      A GesLimp trabalha com uma janela mínima de 4 horas.
-      O Cal.com devolve horas possíveis de INÍCIO, e não diretamente
-      a hora final da disponibilidade. Por isso reconstruímos a janela:
-      - início = primeiro slot devolvido
-      - fim = último slot devolvido + 4 horas
-    */
-    const SERVICE_DURATION_MINUTES = 240;
-
-    const lisboaFormatter = new Intl.DateTimeFormat("pt-PT", {
-      timeZone: "Europe/Lisbon",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false
-    });
-
-    function getLisbonMinutes(value){
-      const date = value instanceof Date ? value : new Date(value);
-      const parts = lisboaFormatter.formatToParts(date);
-      const hourPart = parts.find(function(part){ return part.type === "hour"; });
-      const minutePart = parts.find(function(part){ return part.type === "minute"; });
-
-      let hour = hourPart ? Number(hourPart.value) : date.getHours();
-      const minute = minutePart ? Number(minutePart.value) : date.getMinutes();
-
-      // Alguns browsers podem representar meia-noite como 24:00.
-      if(hour === 24) hour = 0;
-
-      return hour * 60 + minute;
-    }
-
-    const firstSlotMinutes = getLisbonMinutes(slots[0]);
-    const lastSlotMinutes = getLisbonMinutes(slots[slots.length - 1]);
-
-    // Hora final real estimada da janela de disponibilidade.
-    const availabilityEndMinutes =
-      Math.min(24 * 60, lastSlotMinutes + SERVICE_DURATION_MINUTES);
-
-    const periodos = [
-      {
-        value:"MANHA",
-        label:"Parte da manhã",
-        inicio:9 * 60,
-        fim:13 * 60
-      },
-      {
-        value:"TARDE",
-        label:"Parte da tarde",
-        inicio:13 * 60,
-        fim:18 * 60
-      },
-      {
-        value:"NOITE",
-        label:"Parte da noite",
-        inicio:18 * 60,
-        fim:24 * 60
-      }
-    ];
-
-    periodos.forEach(function(periodo){
-      /*
-        O período aparece sempre que a janela total de disponibilidade
-        se cruza com esse período.
-        Exemplos:
-        09:00–17:00 -> manhã + tarde
-        09:00–23:00 -> manhã + tarde + noite
-        17:00–23:00 -> tarde + noite
-        18:00–23:00 -> noite
-      */
-      const intersects =
-        firstSlotMinutes < periodo.fim &&
-        availabilityEndMinutes > periodo.inicio;
-
-      if(!intersects) return;
-
-      /*
-        Para efetuar a reserva precisamos de enviar ao Cal.com um slot real.
-        Tentamos primeiro um slot dentro do próprio período.
-        Se o período fizer parte da janela mas não existir um início exato
-        nesse intervalo, usamos o slot real mais próximo possível.
-      */
-      let chosenSlot = slots.find(function(iso){
-        const mins = getLisbonMinutes(iso);
-        return mins >= periodo.inicio && mins < periodo.fim;
-      });
-
-      if(!chosenSlot){
-        chosenSlot = slots.find(function(iso){
-          return getLisbonMinutes(iso) >= periodo.inicio;
-        }) || slots[slots.length - 1];
-      }
-
-      const opt = document.createElement("option");
-      opt.value = chosenSlot;
-      opt.dataset.periodo = periodo.value;
-      opt.textContent = periodo.label;
-      timeSlot.appendChild(opt);
-    });
-
-    timeSlot.disabled = timeSlot.options.length <= 1;
-
-    if(timeSlot.disabled){
-      timeSlot.innerHTML = '<option value="">Sem períodos disponíveis</option>';
-    }
-  }
-
-  prevBtn.addEventListener("click", async function(){
-    const previous = new Date(viewDate.getFullYear(), viewDate.getMonth()-1, 1);
-    if(previous < new Date(today.getFullYear(), today.getMonth(), 1)) return;
-    viewDate = previous;
-    selectedDate = null;
-    selectedLabel.textContent = "Ainda não selecionada";
-    timeSlot.innerHTML = '<option value="">Selecione primeiro uma data</option>';
-    timeSlot.disabled = true;
-    await loadMonthAvailability();
-  });
-
-  nextBtn.addEventListener("click", async function(){
-    viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth()+1, 1);
-    selectedDate = null;
-    selectedLabel.textContent = "Ainda não selecionada";
-    timeSlot.innerHTML = '<option value="">Selecione primeiro uma data</option>';
-    timeSlot.disabled = true;
-    await loadMonthAvailability();
-  });
-
-  form.addEventListener("submit", async function(e){
-    e.preventDefault();
-
-    if(!selectedDate){
-      setStatus("Selecione primeiro uma data.", "error");
-      return;
-    }
-
-    if(!timeSlot.value){
-      setStatus("Selecione também um período.", "error");
-      return;
-    }
-
-    if(isServicoPersonalizado() && clientNotes && !clientNotes.value.trim()){
-      clientNotes.setCustomValidity("Descreva o serviço personalizado pretendido.");
-      clientNotes.reportValidity();
-      clientNotes.focus();
-      return;
-    }
-
-    if(clientNotes){
-      clientNotes.setCustomValidity("");
-    }
-
-    if(!form.reportValidity()) return;
-
-    const submitBtn = form.querySelector(".booking-submit");
-    const originalText = submitBtn.textContent;
-    submitBtn.disabled = true;
-    submitBtn.textContent = "A MARCAR...";
-    setStatus("A confirmar a marcação...");
-
-    const payload = {
-      nome: document.getElementById("clientName").value.trim(),
-      telemovel: document.getElementById("clientPhone").value.trim(),
-      email: document.getElementById("clientEmail").value.trim(),
-      morada: [
-        document.getElementById("clientAddress").value.trim(),
-        document.getElementById("clientPostalCode").value.trim()
-      ].filter(Boolean).join(", "),
-      servico: serviceType.value,
-      dataHora: timeSlot.value,
-      observacoes: document.getElementById("clientNotes").value.trim()
-    };
-
-    try{
-      const response = await fetch(API_URL, {
-        method:"POST",
-        headers:{"Content-Type":"text/plain;charset=utf-8"},
-        body:JSON.stringify(payload),
-        redirect:"follow"
-      });
-
-      if(!response.ok) throw new Error("Não foi possível criar a reserva.");
-
-      const data = await response.json();
-      if(!data.success) throw new Error(data.message || "Não foi possível criar a reserva.");
-
-      setStatus("Pedido de agendamento registado com sucesso.", "success");
-      showSuccessModal();
-      form.reset();
-      selectedDate = null;
-      selectedLabel.textContent = "Ainda não selecionada";
-      timeSlot.innerHTML = '<option value="">Selecione primeiro uma data</option>';
-      timeSlot.disabled = true;
-
-      await loadMonthAvailability();
-
-    } catch(error){
-      setStatus(error.message || "Não foi possível concluir a marcação.", "error");
-      console.error(error);
-      await loadMonthAvailability();
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = originalText;
-    }
-  });
-
-  timeSlot.innerHTML = '<option value="">Selecione primeiro uma data</option>';
-  timeSlot.disabled = true;
-
-  // Mostrar imediatamente a estrutura do calendário antes da consulta online.
-  renderCalendar();
-  loadMonthAvailability();
-})();
-
-</script>
+<script type="module" src="booking.js?v=25"></script>
 
 
 
