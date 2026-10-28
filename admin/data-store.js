@@ -5,6 +5,7 @@ export function createDataStore(api, db) {
   const shifts = ['Manhã', 'Tarde', 'Noite'];
   return {
     async setDay(day, slots) {
+      if (day < todayPortugal()) throw Error('Não é possível alterar a disponibilidade de dias passados.');
       if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || slots.length !== 3 || slots.some(s => typeof s !== 'boolean')) throw Error('Disponibilidade inválida.');
       await runTransaction(db, async tx => {
         const ref = doc(db, 'availability', day);
@@ -13,6 +14,7 @@ export function createDataStore(api, db) {
       });
     },
     async createBooking(input) {
+      if (!validDate(input.day) || input.day < todayPortugal()) throw Error('Não é possível criar marcações em datas passadas.');
       const ref = doc(collection(db, 'bookings'));
       const dayRef = doc(db, 'availability', input.day);
       await runTransaction(db, async tx => {
