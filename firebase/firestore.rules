@@ -44,7 +44,7 @@ service cloud.firestore {
         && data.postcode is string && (data.postcode == '' || data.postcode.matches('^[0-9]{4}-[0-9]{3}$'))
         && data.city is string && data.city.size() <= 100
         && data.type in ['', 'Particular', 'Profissional']
-        && data.service in ['', 'Casa completa','Divisões específicas da casa','Condomínio','Escritório','Espaço comercial','Limpeza pós-obra','Outra limpeza']
+        && data['service'] in ['', 'Casa completa','Divisões específicas da casa','Condomínio','Escritório','Espaço comercial','Limpeza pós-obra','Outra limpeza']
         && data.serviceDetails is string && data.serviceDetails.size() <= 5000
         && data.notes is string && data.notes.size() <= 5000
         && data.updatedAt == request.time;
