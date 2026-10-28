@@ -119,7 +119,9 @@ service cloud.firestore {
         && (request.resource.data.status == 'cancelada'
           ? getAfter(/databases/$(database)/documents/availability/$(resource.data.day)).data.bookingId != id
           : getAfter(/databases/$(database)/documents/availability/$(resource.data.day)).data.bookingId == id);
-      allow delete: if false;
+      allow delete: if isAdmin() && resource.data.status == 'cancelada'
+        && timestamp.date(int(resource.data.day.split('-')[0]),int(resource.data.day.split('-')[1]),int(resource.data.day.split('-')[2])) < request.time - duration.value(1, 'd')
+        && get(/databases/$(database)/documents/availability/$(resource.data.day)).data.bookingId != id;
     }
     match /clients/{id} {
       allow read: if isAdmin();
@@ -129,10 +131,10 @@ service cloud.firestore {
         && ('createdAt' in resource.data
           ? request.resource.data.createdAt == resource.data.createdAt
           : request.resource.data.createdAt == request.time);
-      allow delete: if false;
+      allow delete: if isAdmin();
     }
     function validService(data) {
-      return data.keys().hasOnly(['clientId','title','serviceType','frequency','startDate','estimatedDuration','areas','notes','createdAt','updatedAt'])
+      return data.keys().hasOnly(['clientId','title','serviceType','frequency','startDate','estimatedDuration','areas','notes','createdAt','updatedAt','endDate','status'])
         && data.keys().hasAll(['clientId','title','serviceType','frequency','startDate','estimatedDuration','areas','notes','createdAt','updatedAt'])
         && data.clientId is string && validId(data.clientId)
         && exists(/databases/$(database)/documents/clients/$(data.clientId))
@@ -140,6 +142,9 @@ service cloud.firestore {
         && data.serviceType in ['Casa completa','Divisões específicas da casa','Condomínio','Escritório','Espaço comercial','Limpeza pós-obra','Outra limpeza']
         && data.frequency in ['Pontual','Diário','Semanal','Quinzenal','Mensal','Outro']
         && data.startDate is string && validDay(data.startDate)
+        && (!('status' in data) || data.status in ['ativo','concluido','cancelado'])
+        && (!('endDate' in data) || (data.endDate is string && (data.endDate == '' || (validDay(data.endDate) && data.endDate >= data.startDate))))
+        && (data.frequency != 'Pontual' || !('endDate' in data) || data.endDate == data.startDate)
         && data.estimatedDuration is string && data.estimatedDuration.size() <= 80
         && data.areas is string && data.areas.size() <= 5000
         && data.notes is string && data.notes.size() <= 5000
@@ -152,7 +157,8 @@ service cloud.firestore {
       allow update: if isAdmin() && validService(request.resource.data)
         && request.resource.data.clientId == resource.data.clientId
         && request.resource.data.createdAt == resource.data.createdAt;
-      allow delete: if false;
+      allow delete: if isAdmin() && resource.data.status == 'cancelado'
+        && timestamp.date(int((resource.data.get('endDate','') != '' ? resource.data.endDate : resource.data.startDate).split('-')[0]),int((resource.data.get('endDate','') != '' ? resource.data.endDate : resource.data.startDate).split('-')[1]),int((resource.data.get('endDate','') != '' ? resource.data.endDate : resource.data.startDate).split('-')[2])) < request.time - duration.value(1, 'd');
     }
     // Tudo o que não foi autorizado explicitamente continua privado.
     match /{document=**} { allow read, write: if false; }

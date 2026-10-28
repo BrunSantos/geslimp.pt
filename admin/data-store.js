@@ -4,6 +4,16 @@ export function createDataStore(api, db) {
   const { doc, collection, runTransaction, serverTimestamp } = api;
   const shifts = ['Manhã', 'Tarde', 'Noite'];
   return {
+    async deleteClient(id) {
+      // Admin-only deletion. Associated records are retained and checked by the UI.
+      await runTransaction(db,async tx=>{const ref=doc(db,'clients',id);const snap=await tx.get(ref);if(!snap.exists())throw Error('Ficha não encontrada.');tx.delete(ref);});
+    },
+    async deleteCancelledBooking(id) {
+      await runTransaction(db,async tx=>{const ref=doc(db,'bookings',id);const snap=await tx.get(ref);if(!snap.exists()||snap.data().status!=='cancelada'||snap.data().day>=todayPortugal())throw Error('Só podes apagar marcações canceladas de dias passados.');const day=await tx.get(doc(db,'availability',snap.data().day));if(day.data()?.bookingId===id)throw Error('O dia ainda está ocupado por esta marcação.');tx.delete(ref);});
+    },
+    async deleteCancelledService(id) {
+      await runTransaction(db,async tx=>{const ref=doc(db,'services',id);const snap=await tx.get(ref);const s=snap.data();if(!snap.exists()||s.status!=='cancelado'||(s.endDate||s.startDate)>=todayPortugal())throw Error('Só podes apagar serviços cancelados de dias passados.');tx.delete(ref);});
+    },
     async setDay(day, slots) {
       if (day < todayPortugal()) throw Error('Não é possível alterar a disponibilidade de dias passados.');
       if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || slots.length !== 3 || slots.some(s => typeof s !== 'boolean')) throw Error('Disponibilidade inválida.');
@@ -44,6 +54,8 @@ export function createDataStore(api, db) {
     },
     async saveService(service) {
       const {id, ...fields} = service;
+      if(!validDate(fields.startDate)|| (fields.endDate && (!validDate(fields.endDate)||fields.endDate<fields.startDate))) throw Error('Indica datas válidas para o serviço.');
+      fields.status=fields.status||'ativo';fields.endDate=fields.frequency==='Pontual'?fields.startDate:(fields.endDate||'');
       const ref = id ? doc(db,'services',id) : doc(collection(db,'services'));
       await runTransaction(db, async tx => {
         const client = await tx.get(doc(db,'clients',fields.clientId));
