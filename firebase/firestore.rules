@@ -158,6 +158,119 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt;
       allow delete: if isAdmin() && resource.data.status == 'cancelado';
     }
+    function quoteFields(d) {
+      return d.name is string && d.name.size() > 0 && d.name.size() <= 100
+        && d.email is string && d.email.size() <= 150
+        && d.title is string && d.title.size() > 0 && d.title.size() <= 150
+        && d.clientId is string && (d.clientId == '' || exists(/databases/$(database)/documents/clients/$(d.clientId)))
+        && d.date is string && validDay(d.date) && d.valid is string && validDay(d.valid) && d.valid >= d.date
+        && d.lines is list && d.lines.size() > 0 && d.lines.size() <= 30
+        && d.discount is number && d.discount >= 0 && d.discount <= 100
+        && d.vat is number && d.vat >= 0 && d.vat <= 100
+        && d.scope is string && d.scope.size() <= 5000
+        && d.terms is string && d.terms.size() <= 5000
+        && d.notes is string && d.notes.size() <= 5000
+        && d.address is string && d.address.size() <= 300
+        && d.materials is string && d.materials.size() <= 500
+        && d.taxnote is string && d.taxnote.size() <= 300
+        && d.frequency in ['Pontual','Diário','Semanal','Quinzenal','Mensal','Outro']
+        && d.type in ['Casa completa','Limpeza pós-obra','Condomínio','Escritório','Espaço comercial','Divisões específicas da casa','Outra limpeza']
+        && d.updatedAt == request.time;
+    }
+    match /quoteCounters/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && id == 'main' && request.resource.data.keys().hasOnly(['value']) && request.resource.data.value == 1;
+      allow update: if isAdmin() && id == 'main' && request.resource.data.keys().hasOnly(['value']) && request.resource.data.value == resource.data.value + 1;
+    }
+    match /quotes/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && validId(id) && quoteFields(request.resource.data)
+        && request.resource.data.keys().hasOnly(['name','email','address','title','date','valid','frequency','type','discount','vat','taxnote','scope','terms','materials','notes','clientId','lines','number','revision','parentId','status','serviceId','linkId','createdAt','updatedAt'])
+        && request.resource.data.status == 'rascunho' && request.resource.data.serviceId == ''
+        && request.resource.data.number is string && request.resource.data.number.size() <= 30
+        && request.resource.data.revision is int && request.resource.data.revision > 0
+        && request.resource.data.parentId is string
+        && request.resource.data.createdAt == request.time;
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','serviceId','linkId','updatedAt'])
+        && request.resource.data.status in ['rascunho','enviado','aceite','recusado','expirado']
+        && (request.resource.data.get('linkId','') == '' || (
+          request.resource.data.linkId.matches('^[a-f0-9]{64}$')
+          && (request.resource.data.status != 'aceite' || (
+            getAfter(/databases/$(database)/documents/quoteLinks/$(request.resource.data.linkId)).data.status == 'accepted'
+            && getAfter(/databases/$(database)/documents/quoteLinks/$(request.resource.data.linkId)).data.quoteId == id))))
+        && request.resource.data.updatedAt == request.time
+        && (request.resource.data.serviceId == resource.data.serviceId
+          || (resource.data.serviceId == '' && request.resource.data.status == 'aceite'
+            && request.resource.data.serviceId == 'quote-' + id
+            && getAfter(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.clientId == resource.data.clientId));
+    }
+    match /quoteTemplates/{id} {
+      allow read, delete: if isAdmin();
+      allow create, update: if isAdmin() && validId(id)
+        && request.resource.data.keys().hasOnly(['title','frequency','type','discount','vat','taxnote','scope','terms','materials','lines','updatedAt'])
+        && request.resource.data.title is string && request.resource.data.title.size() <= 150
+        && request.resource.data.scope is string && request.resource.data.scope.size() <= 5000
+        && request.resource.data.terms is string && request.resource.data.terms.size() <= 5000
+        && request.resource.data.lines is list && request.resource.data.lines.size() > 0 && request.resource.data.lines.size() <= 30
+        && request.resource.data.updatedAt == request.time;
+    }
+    function cleanPublicQuote(d) {
+      return d.keys().hasOnly(['name','title','date','valid','frequency','type','discount','vat','taxnote','scope','terms','materials','lines','number','revision'])
+        && d.keys().hasAll(['name','title','date','valid','frequency','type','discount','vat','taxnote','scope','terms','materials','lines','number','revision']);
+    }
+    function linkShape(d) {
+      return d.keys().hasOnly(['quoteId','quote','status','expiresAt','clientChoice','clientComment','clientAt','finalComment','finalAt','history','updatedAt'])
+        && cleanPublicQuote(d.quote)
+        && validId(d.quoteId) && d.expiresAt is timestamp
+        && d.history is list && d.history.size() <= 20
+        && d.clientComment is string && d.clientComment.size() <= 2000
+        && d.finalComment is string && d.finalComment.size() <= 2000
+        && d.updatedAt == request.time;
+    }
+    function snapshotMatches(d) {
+      let q = getAfter(/databases/$(database)/documents/quotes/$(d.quoteId)).data;
+      return d.quote.name == q.name && d.quote.title == q.title && d.quote.date == q.date
+        && d.quote.valid == q.valid && d.quote.frequency == q.frequency && d.quote.type == q.type
+        && d.quote.discount == q.discount && d.quote.vat == q.vat && d.quote.taxnote == q.taxnote
+        && d.quote.scope == q.scope && d.quote.terms == q.terms && d.quote.materials == q.materials
+        && d.quote.lines == q.lines && d.quote.number == q.number && d.quote.revision == q.revision;
+    }
+    match /quoteLinks/{token} {
+      allow list: if isAdmin();
+      allow get: if isAdmin() || (token.matches('^[a-f0-9]{64}$') && resource.data.status != 'revoked');
+      allow create: if isAdmin() && token.matches('^[a-f0-9]{64}$')
+        && linkShape(request.resource.data) && snapshotMatches(request.resource.data)
+        && request.resource.data.status == 'awaiting_client'
+        && request.resource.data.clientChoice == '' && request.resource.data.clientComment == ''
+        && request.resource.data.clientAt == null && request.resource.data.finalAt == null
+        && request.resource.data.finalComment == '' && request.resource.data.history.size() == 0
+        && request.resource.data.expiresAt > request.time;
+      allow update: if (isAdmin() && linkShape(request.resource.data) && (
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt']) && request.resource.data.status == 'revoked')
+        || (resource.data.status == 'awaiting_geslimp'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','finalComment','finalAt','updatedAt'])
+          && request.resource.data.status in ['accepted','refused']
+          && (request.resource.data.status != 'accepted' || resource.data.clientChoice == 'accepted')
+          && request.resource.data.finalComment.size() > 0 && request.resource.data.finalAt == request.time)
+        || (resource.data.status != 'revoked' && request.resource.data.quoteId != resource.data.quoteId
+          && getAfter(/databases/$(database)/documents/quotes/$(request.resource.data.quoteId)).data.parentId == resource.data.quoteId
+          && snapshotMatches(request.resource.data)
+          && request.resource.data.status == 'awaiting_client' && request.resource.data.expiresAt > request.time
+          && request.resource.data.clientChoice == '' && request.resource.data.clientComment == ''
+          && request.resource.data.clientAt == null && request.resource.data.finalAt == null && request.resource.data.finalComment == ''
+          && request.resource.data.history.size() == resource.data.history.size() + 1)
+      )) || (
+        request.auth != null && token.matches('^[a-f0-9]{64}$')
+        && resource.data.status == 'awaiting_client' && resource.data.expiresAt > request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','clientChoice','clientComment','clientAt','updatedAt'])
+        && request.resource.data.status == 'awaiting_geslimp'
+        && request.resource.data.clientChoice in ['accepted','refused']
+        && request.resource.data.clientComment is string && request.resource.data.clientComment.size() <= 2000
+        && (request.resource.data.clientChoice != 'refused' || request.resource.data.clientComment.size() > 0)
+        && request.resource.data.clientAt == request.time && request.resource.data.updatedAt == request.time
+      );
+    }
     // Tudo o que não foi autorizado explicitamente continua privado.
     match /{document=**} { allow read, write: if false; }
   }
