@@ -136,7 +136,7 @@ service cloud.firestore {
       return data.keys().hasOnly(['clientId','title','serviceType','frequency','startDate','estimatedDuration','areas','notes','createdAt','updatedAt','endDate','status'])
         && data.keys().hasAll(['clientId','title','serviceType','frequency','startDate','estimatedDuration','areas','notes','createdAt','updatedAt'])
         && data.clientId is string && validId(data.clientId)
-        && exists(/databases/$(database)/documents/clients/$(data.clientId))
+        && existsAfter(/databases/$(database)/documents/clients/$(data.clientId))
         && data.title is string && data.title.size() > 0 && data.title.size() <= 150
         && data.serviceType in ['Casa completa','Divisões específicas da casa','Condomínio','Escritório','Espaço comercial','Limpeza pós-obra','Outra limpeza']
         && data.frequency in ['Pontual','Diário','Semanal','Quinzenal','Mensal','Outro']

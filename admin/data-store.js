@@ -1,3 +1,4 @@
+import {serviceFromBooking} from './booking-service.js';
 import {validDate,todayPortugal} from './client-dates.js';
 // Operações atómicas: nunca substituímos toda a base de dados com uma cópia do navegador.
 export function createDataStore(api, db) {
@@ -89,14 +90,19 @@ export function createDataStore(api, db) {
       const ref = doc(db, 'clients', id);
       await runTransaction(db, async tx => {
         const current = await tx.get(ref);
-        let bookingRef;
+        let bookingRef, importedService, serviceRef, existingService;
         if (bookingId) {
           bookingRef = doc(db, 'bookings', bookingId);
           const booking = await tx.get(bookingRef);
           if (!booking.exists()) throw Error('A marcação deixou de existir.');
+          if(booking.data().clientId && booking.data().clientId!==id)throw Error('Esta marcação já está associada a outra ficha. Atualiza os dados.');
+          importedService=serviceFromBooking(booking.data(),id);
+          if(importedService){serviceRef=doc(db,'services','site-'+bookingId);existingService=await tx.get(serviceRef);}
+
         }
         tx.set(ref, { ...fields, createdAt: current.exists() ? (current.data().createdAt || serverTimestamp()) : serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true });
         if (bookingRef) tx.update(bookingRef, { clientId: id, updatedAt: serverTimestamp() });
+        if(importedService && !existingService.exists())tx.set(serviceRef,{...importedService,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
       });
     }
   };
