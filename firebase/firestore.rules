@@ -356,12 +356,14 @@ service cloud.firestore {
 
     // Stock: o inventário e os movimentos são atualizados na mesma transação.
     function stockItemShape(d) {
-      return d.keys().hasOnly(['name','brand','kind','category','unit','minQtyMilli','reference','archived','notes','photoData','qtyMilli','onLoanMilli','inventoryValueCents','lastMovementId','lastSupplierId','createdAt','updatedAt'])
+      return d.keys().hasOnly(['name','brand','kind','category','unit','minQtyMilli','targetQtyMilli','preferredSupplierId','reference','archived','notes','photoData','qtyMilli','onLoanMilli','inventoryValueCents','lastMovementId','lastSupplierId','createdAt','updatedAt'])
         && d.keys().hasAll(['name','brand','kind','category','unit','minQtyMilli','reference','archived','notes','photoData','qtyMilli','onLoanMilli','inventoryValueCents','lastMovementId','lastSupplierId','createdAt','updatedAt'])
         && d.name is string && d.name.size() > 0 && d.name.size() <= 150
         && d.brand is string && d.brand.size() <= 100 && d.category is string && d.category.size() <= 100
         && d.kind in ['consumable','equipment'] && d.unit in ['unidade','embalagem','litro','kg']
         && (d.kind != 'equipment' || (d.unit == 'unidade' && d.qtyMilli % 1000 == 0 && d.onLoanMilli % 1000 == 0))
+        && (!('targetQtyMilli' in d) || (d.targetQtyMilli is int && d.targetQtyMilli > d.minQtyMilli && d.targetQtyMilli <= 10000000 && (d.kind != 'equipment' || d.targetQtyMilli % 1000 == 0)))
+        && (!('preferredSupplierId' in d) || (d.preferredSupplierId is string && d.preferredSupplierId.size() <= 128))
         && d.minQtyMilli is int && d.minQtyMilli >= 0 && d.minQtyMilli <= 10000000
         && d.qtyMilli is int && d.qtyMilli >= 0 && d.qtyMilli <= 10000000
         && d.onLoanMilli is int && d.onLoanMilli >= 0 && d.onLoanMilli <= 10000000
@@ -410,7 +412,7 @@ service cloud.firestore {
           || stockDelta(id,{'qtyMilli':0,'onLoanMilli':0,'inventoryValueCents':0,'lastMovementId':'','lastSupplierId':''},request.resource.data));
       allow update: if isAdmin() && stockItemShape(request.resource.data)
         && request.resource.data.createdAt == resource.data.createdAt && request.resource.data.kind == resource.data.kind && request.resource.data.unit == resource.data.unit
-        && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','brand','category','minQtyMilli','reference','archived','notes','photoData','updatedAt'])
+        && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','brand','category','minQtyMilli','targetQtyMilli','preferredSupplierId','reference','archived','notes','photoData','updatedAt'])
           || (!resource.data.archived && !request.resource.data.archived && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qtyMilli','onLoanMilli','inventoryValueCents','lastMovementId','lastSupplierId','updatedAt']) && stockDelta(id,resource.data,request.resource.data)));
       allow delete: if false;
     }
