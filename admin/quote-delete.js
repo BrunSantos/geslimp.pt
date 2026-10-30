@@ -6,7 +6,12 @@ export function quoteFamily(quotes,id){
  while(changed){changed=false;for(const q of quotes){if(ids.has(q.id)&&q.parentId&&!ids.has(q.parentId)){ids.add(q.parentId);changed=true}if(q.parentId&&ids.has(q.parentId)&&!ids.has(q.id)){ids.add(q.id);changed=true}}}
  return quotes.filter(q=>ids.has(q.id));
 }
-const fingerprint=s=>JSON.stringify(s.exists()?s.data():null);
+// Firestore query and transaction snapshots may return map keys in different orders.
+// Compare field values canonically, including nested maps and Timestamp JSON values.
+export const fingerprint=s=>JSON.stringify(s.exists()?s.data():null,(_key,value)=>{
+ if(value&&typeof value==='object'&&!Array.isArray(value))return Object.fromEntries(Object.keys(value).sort().map(key=>[key,value[key]]));
+ return value;
+});
 export async function deleteQuoteHistory(ctx,id){
  if(!ctx.ready())throw Error('Inicia sessão como administrador.');
  const counter=doc(ctx.db,'quoteCounters','main');
