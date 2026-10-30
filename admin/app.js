@@ -2,7 +2,7 @@ import {initAgendaReport} from './agenda-report.js?v=49';
 import {bookingSlots} from './agenda-data.js?v=49';
 import {resetAdminNavigation} from './navigation-start.js?v=48';
 import {initStock} from './stock.js?v=47';
-import {initTeam} from './team.js?v=47';
+import {initTeam} from './team.js?v=52';
 import {initQuotes} from './quotes.js?v=44';
 import {todayPortugal, validDate, isPremium} from './client-dates.js';
 import { createMapLinks } from './map-links.js';
@@ -117,7 +117,7 @@ function renderServiceList() {
   if (!client) return;
   $('#services-client-name').textContent = client.name;
   const services = state.services.filter(s=>s.clientId===client.id).sort((a,b)=>(b.startDate||'').localeCompare(a.startDate||''));
-  $('#services-list').innerHTML = services.length ? services.map(s=>`<article class="service-record"><div class="head"><strong>${escapeHtml(s.title)}</strong><button class="btn" data-edit-service="${escapeHtml(s.id)}">Editar</button></div><span class="service-frequency">${escapeHtml(s.frequency)} · ${serviceStatusLabel(s)}</span><div class="muted">${escapeHtml(s.serviceType)}<br>Início: ${escapeHtml(s.startDate.split('-').reverse().join('/'))}${(s.endDate||s.frequency==='Pontual')?'<br>Término: '+escapeHtml((s.endDate||s.startDate).split('-').reverse().join('/')):''}${s.estimatedDuration?'<br>Duração prevista: '+escapeHtml(s.estimatedDuration):''}${s.areas?'<br>Áreas e tarefas: '+escapeHtml(s.areas):''}${s.notes?'<br>Observações: '+escapeHtml(s.notes):''}</div><div class="service-buttons">${(s.status||'ativo')==='ativo'?`<button class="btn" data-service-complete="${escapeHtml(s.id)}">Concluir</button><button class="btn" data-service-reschedule="${escapeHtml(s.id)}">Reagendar</button><button class="btn danger" data-service-cancel="${escapeHtml(s.id)}">Cancelar serviço</button>`:''}${s.status==='cancelado'?`<button class="btn danger" data-service-delete="${escapeHtml(s.id)}">Apagar serviço</button>`:''}</div></article>`).join('') : '<div class="empty">Ainda não há serviços adicionados a esta ficha.</div>';
+  $('#services-list').innerHTML = services.length ? services.map(s=>`<article class="service-record"><div class="head"><strong>${escapeHtml(s.title)}</strong><button class="btn" data-edit-service="${escapeHtml(s.id)}">Editar</button></div><span class="service-frequency">${escapeHtml(s.frequency)} · ${serviceStatusLabel(s)}</span><div class="muted">${escapeHtml(s.serviceType)}<br>Início: ${escapeHtml(s.startDate.split('-').reverse().join('/'))}${(s.endDate||s.frequency==='Pontual')?'<br>Término: '+escapeHtml((s.endDate||s.startDate).split('-').reverse().join('/')):'<br>Sem data de término'}${s.estimatedDuration?'<br>Duração prevista: '+escapeHtml(s.estimatedDuration):''}${s.areas?'<br>Áreas e tarefas: '+escapeHtml(s.areas):''}${s.notes?'<br>Observações: '+escapeHtml(s.notes):''}</div><div class="service-buttons">${(s.status||'ativo')==='ativo'?`<button class="btn" data-service-complete="${escapeHtml(s.id)}">Concluir</button><button class="btn" data-service-reschedule="${escapeHtml(s.id)}">Reagendar</button><button class="btn danger" data-service-cancel="${escapeHtml(s.id)}">Cancelar serviço</button>`:''}${s.status==='cancelado'?`<button class="btn danger" data-service-delete="${escapeHtml(s.id)}">Apagar serviço</button>`:''}</div></article>`).join('') : '<div class="empty">Ainda não há serviços adicionados a esta ficha.</div>';
   $('#legacy-service').hidden = Boolean(services.length || !client.service);
   $('#legacy-service').textContent = client.service ? 'Informação anterior: '+client.service+(client.serviceDetails?' · '+client.serviceDetails:'')+'. Usa “Adicionar serviço” para a organizar numa ficha de trabalho.' : '';
   $('#services-list').querySelectorAll('[data-edit-service]').forEach(button=>button.onclick=()=>openServiceForm(state.services.find(s=>s.id===button.dataset.editService)));
@@ -137,6 +137,8 @@ function openServiceForm(service) {
   $('#service-start').value=service?.startDate || todayPortugal();
   $('#service-end').value=service?.endDate || (service?.frequency==='Pontual'?service.startDate:'');
   $('#service-state').value=service?.status || 'ativo';
+  delete $('#service-end').dataset.single;
+  $('#service-no-end').checked=$('#service-frequency').value!=='Pontual'&&!service?.endDate;
   syncServiceDates();
   $('#service-duration').value=service?.estimatedDuration || '';
   $('#service-areas').value=service?.areas || '';
@@ -308,7 +310,8 @@ $('#refresh-data').onclick = async () => {
 };
 
 function serviceStatusLabel(s){return ({ativo:'Ativo',concluido:'Concluído',cancelado:'Cancelado'})[s.status||'ativo']||'Ativo'}
-function syncServiceDates(){const single=$('#service-frequency').value==='Pontual';const end=$('#service-end');end.readOnly=single;end.min=$('#service-start').value;if(single)end.value=$('#service-start').value;}
+function syncServiceDates(){const single=$('#service-frequency').value==='Pontual';const end=$('#service-end'),noEnd=$('#service-no-end');if(!single&&end.dataset.single==='true'){noEnd.checked=true;end.value='';}end.dataset.single=String(single);$('#service-no-end-label').hidden=single;noEnd.disabled=single;end.min=$('#service-start').value;end.readOnly=single;end.disabled=!single&&noEnd.checked;if(single)end.value=$('#service-start').value;else if(noEnd.checked)end.value='';}
+$('#service-no-end').addEventListener('change',syncServiceDates);
 $('#service-frequency').addEventListener('change',syncServiceDates);
 $('#service-start').addEventListener('change',syncServiceDates);
 document.addEventListener('click',async event=>{

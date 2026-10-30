@@ -1,0 +1,506 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.enabled == true;
+    }
+    function validId(id) { return id.matches('^[A-Za-z0-9-]{1,128}$'); }
+    function validDay(day) { return day.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'); }
+    function validSlots(slots) {
+      return slots is list && slots.size() == 3
+        && slots[0] is bool && slots[1] is bool && slots[2] is bool;
+    }
+    function validAvailability(data) {
+      return data.keys().hasOnly(['slots','bookingId','updatedAt'])
+        && data.keys().hasAll(['slots','bookingId','updatedAt'])
+        && validSlots(data.slots) && data.bookingId is string
+        && data.updatedAt == request.time;
+    }
+    function matchingBookingAfter(id, day) {
+      let booking = getAfter(/databases/$(database)/documents/bookings/$(id)).data;
+      return booking.day == day && booking.status in ['pendente','confirmada','concluida'];
+    }
+    function validBooking(data, id) {
+      return data.keys().hasOnly(['name','day','shift','notes','status','createdAt','updatedAt','clientId','phone','email','address','postcode','city','requestedService','source','ownerUid'])
+        && data.keys().hasAll(['name','day','shift','notes','status','createdAt','updatedAt'])
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.day is string && validDay(data.day)
+        && data.shift in ['Manhã','Tarde','Noite','Dia inteiro']
+        && data.notes is string && data.notes.size() <= 5000
+        && data.status in ['pendente','confirmada','cancelada','concluida']
+        && data.createdAt is timestamp && data.updatedAt == request.time
+        && (!('clientId' in data) || (data.clientId is string && validId(data.clientId)
+          && existsAfter(/databases/$(database)/documents/clients/$(data.clientId))));
+    }
+    function validClient(data) {
+      return employeeReference(data) && data.keys().hasOnly(['name','phone','email','address','postcode','city','type','service','serviceDetails','notes','clientSince','createdAt','updatedAt','employeeId'])
+        && data.keys().hasAll(['name','phone','email','address','postcode','city','type','service','serviceDetails','notes','clientSince','createdAt','updatedAt'])
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.phone is string && data.phone.size() >= 7 && data.phone.size() <= 40 && data.phone.matches('.*[0-9].*')
+        && data.email is string && data.email.size() <= 150
+        && data.address is string && data.address.size() <= 200 && data.address.matches('.*[^ ].*')
+        && data.postcode is string && data.postcode.matches('^[0-9]{4}-[0-9]{3}$')
+        && data.city is string && data.city.size() <= 100 && data.city.matches('.*[^ ].*')
+        && data.type in ['', 'Particular', 'Profissional']
+        && data['service'] in ['', 'Casa completa','Divisões específicas da casa','Condomínio','Escritório','Espaço comercial','Limpeza pós-obra','Outra limpeza']
+        && data.serviceDetails is string && data.serviceDetails.size() <= 5000
+        && data.notes is string && data.notes.size() <= 5000
+        && data.clientSince is string && validDay(data.clientSince)
+        && data.createdAt is timestamp
+        && data.updatedAt == request.time;
+    }
+    function isVisitor() {
+      return request.auth != null && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
+    function validPublicBooking(data) {
+      return isVisitor()
+        && data.keys().hasOnly(['name','day','shift','notes','status','createdAt','updatedAt','phone','email','address','postcode','city','requestedService','source','ownerUid'])
+        && data.keys().hasAll(['phone','email','address','postcode','city','requestedService','source','ownerUid'])
+        && data.source == 'site' && data.ownerUid == request.auth.uid
+        && data.phone is string && data.phone.size() >= 7 && data.phone.size() <= 40 && data.phone.matches('.*[0-9].*')
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 150 && data.email.matches('.*@.*')
+        && data.address is string && data.address.size() <= 200 && data.address.matches('.*[^ ].*')
+        && data.postcode is string && data.postcode.matches('^[0-9]{4}-[0-9]{3}$')
+        && data.city is string && data.city.size() <= 100
+        && data.requestedService in ['Limpeza profunda','Limpeza pós-obra','Condomínio','Empresa','Serviço personalizado']
+        && (data.requestedService != 'Serviço personalizado' || data.notes.size() > 0);
+    }
+    function visitorCanBook(data) {
+      let day = get(/databases/$(database)/documents/availability/$(data.day)).data;
+      return validPublicBooking(data) && day.bookingId == ''
+        && ((data.shift == 'Manhã' && day.slots[0] == true)
+          || (data.shift == 'Tarde' && day.slots[1] == true)
+          || (data.shift == 'Noite' && day.slots[2] == true));
+    }
+    function visitorDayUpdate(day) {
+      let bookingId = request.resource.data.bookingId;
+      let booking = getAfter(/databases/$(database)/documents/bookings/$(bookingId)).data;
+      return isVisitor() && validId(bookingId)
+        && resource.data.bookingId == ''
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['bookingId','updatedAt'])
+        && !exists(/databases/$(database)/documents/bookings/$(bookingId))
+        && booking.day == day && booking.status == 'pendente'
+        && booking.ownerUid == request.auth.uid && booking.source == 'site'
+        && visitorCanBook(booking);
+    }
+    match /admins/{uid} {
+      // Só a consola/Admin SDK atribui este papel. Nenhum visitante pode promover a sua conta.
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow list, create, update, delete: if false;
+    }
+
+    function openingHistoryUpdated(day) {
+      let h = getAfter(/databases/$(database)/documents/availabilityHistory/$(day)).data;
+      return h.updatedAt == request.time
+        && (!request.resource.data.slots[0] || h.slots[0])
+        && (!request.resource.data.slots[1] || h.slots[1])
+        && (!request.resource.data.slots[2] || h.slots[2]);
+    }
+    function historySlots(day, previous) {
+      let before = exists(/databases/$(database)/documents/availability/$(day))
+        ? get(/databases/$(database)/documents/availability/$(day)).data.slots : [false,false,false];
+      let after = getAfter(/databases/$(database)/documents/availability/$(day)).data;
+      return after.updatedAt == request.time
+        && request.resource.data.slots[0] == (previous[0] || before[0] || after.slots[0])
+        && request.resource.data.slots[1] == (previous[1] || before[1] || after.slots[1])
+        && request.resource.data.slots[2] == (previous[2] || before[2] || after.slots[2]);
+    }
+    match /availabilityHistory/{day} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && validDay(day)
+        && request.resource.data.keys().hasOnly(['slots','createdAt','updatedAt']) && validSlots(request.resource.data.slots)
+        && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time
+        && historySlots(day,[false,false,false]);
+      allow update: if isAdmin() && validDay(day)
+        && request.resource.data.keys().hasOnly(['slots','createdAt','updatedAt']) && validSlots(request.resource.data.slots)
+        && request.resource.data.createdAt == resource.data.createdAt && request.resource.data.updatedAt == request.time
+        && historySlots(day,resource.data.slots);
+      allow delete: if false;
+    }
+
+    match /availability/{day} {
+      // Estes documentos contêm apenas turnos, ocupação e data de atualização.
+      allow read: if true;
+      allow create: if isAdmin() && validDay(day) && validAvailability(request.resource.data)
+        && request.resource.data.bookingId == '' && openingHistoryUpdated(day);
+      allow update: if validDay(day) && validAvailability(request.resource.data)
+        && ((isAdmin() && (request.resource.data.slots == resource.data.slots || openingHistoryUpdated(day)) && (request.resource.data.bookingId == resource.data.bookingId
+          || (resource.data.bookingId == '' && validId(request.resource.data.bookingId)
+              && matchingBookingAfter(request.resource.data.bookingId, day))
+          || (request.resource.data.bookingId == ''
+              && getAfter(/databases/$(database)/documents/bookings/$(resource.data.bookingId)).data.status == 'cancelada')))
+          || visitorDayUpdate(day));
+      allow delete: if false;
+    }
+    match /bookings/{id} {
+      allow read: if isAdmin();
+      allow create: if validId(id) && validBooking(request.resource.data,id)
+        && (isAdmin() || visitorCanBook(request.resource.data))
+        && request.resource.data.status == 'pendente'
+        && request.resource.data.createdAt == request.time
+        && getAfter(/databases/$(database)/documents/availability/$(request.resource.data.day)).data.bookingId == id;
+      allow update: if isAdmin() && validBooking(request.resource.data,id)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','clientId','updatedAt'])
+        && (request.resource.data.status == resource.data.status
+          || (resource.data.status == 'pendente' && request.resource.data.status in ['confirmada','cancelada'])
+          || (resource.data.status == 'confirmada' && request.resource.data.status in ['cancelada','concluida']))
+        && (request.resource.data.status == 'cancelada'
+          ? getAfter(/databases/$(database)/documents/availability/$(resource.data.day)).data.bookingId != id
+          : getAfter(/databases/$(database)/documents/availability/$(resource.data.day)).data.bookingId == id);
+      allow delete: if isAdmin() && resource.data.status == 'cancelada'
+        && get(/databases/$(database)/documents/availability/$(resource.data.day)).data.bookingId != id;
+    }
+    match /clients/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && validId(id) && validClient(request.resource.data) && activeEmployee(request.resource.data.get('employeeId',''))
+        && request.resource.data.createdAt == request.time;
+      allow update: if isAdmin() && validId(id) && validClient(request.resource.data) && changedEmployeeAllowed(request.resource.data,resource.data)
+        && ('createdAt' in resource.data
+          ? request.resource.data.createdAt == resource.data.createdAt
+          : request.resource.data.createdAt == request.time);
+      allow delete: if isAdmin();
+    }
+    function validService(data) {
+      return employeeReference(data) && data.keys().hasOnly(['clientId','title','serviceType','frequency','startDate','estimatedDuration','areas','notes','createdAt','updatedAt','endDate','status','employeeId'])
+        && data.keys().hasAll(['clientId','title','serviceType','frequency','startDate','estimatedDuration','areas','notes','createdAt','updatedAt'])
+        && data.clientId is string && validId(data.clientId)
+        && existsAfter(/databases/$(database)/documents/clients/$(data.clientId))
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 150
+        && data.serviceType in ['Casa completa','Divisões específicas da casa','Condomínio','Escritório','Espaço comercial','Limpeza pós-obra','Outra limpeza']
+        && data.frequency in ['Pontual','Diário','Semanal','Quinzenal','Mensal','Outro']
+        && data.startDate is string && validDay(data.startDate)
+        && (!('status' in data) || data.status in ['ativo','concluido','cancelado'])
+        && (!('endDate' in data) || (data.endDate is string && (data.endDate == '' || (validDay(data.endDate) && data.endDate >= data.startDate))))
+        && (data.frequency != 'Pontual' || !('endDate' in data) || data.endDate == data.startDate)
+        && data.estimatedDuration is string && data.estimatedDuration.size() <= 80
+        && data.areas is string && data.areas.size() <= 5000
+        && data.notes is string && data.notes.size() <= 5000
+        && data.createdAt is timestamp && data.updatedAt == request.time;
+    }
+    match /services/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && validId(id) && validService(request.resource.data) && activeEmployee(request.resource.data.get('employeeId',''))
+        && request.resource.data.createdAt == request.time;
+      allow update: if isAdmin() && validService(request.resource.data) && changedEmployeeAllowed(request.resource.data,resource.data)
+        && request.resource.data.clientId == resource.data.clientId
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isAdmin() && resource.data.status == 'cancelado';
+    }
+    function quoteFields(d) {
+      return d.name is string && d.name.size() > 0 && d.name.size() <= 100
+        && d.email is string && d.email.size() <= 150
+        && d.title is string && d.title.size() > 0 && d.title.size() <= 150
+        && d.clientId is string && (d.clientId == '' || exists(/databases/$(database)/documents/clients/$(d.clientId)))
+        && d.date is string && validDay(d.date) && d.valid is string && validDay(d.valid) && d.valid >= d.date
+        && d.lines is list && d.lines.size() > 0 && d.lines.size() <= 30
+        && d.discount is number && d.discount >= 0 && d.discount <= 100
+        && d.vat is number && d.vat >= 0 && d.vat <= 100
+        && d.scope is string && d.scope.size() <= 5000
+        && d.terms is string && d.terms.size() <= 5000
+        && d.notes is string && d.notes.size() <= 5000
+        && d.address is string && d.address.size() <= 300
+        && d.materials is string && d.materials.size() <= 500
+        && d.taxnote is string && d.taxnote.size() <= 300
+        && d.frequency in ['Pontual','Diário','Semanal','Quinzenal','Mensal','Outro']
+        && d.type in ['Casa completa','Limpeza pós-obra','Condomínio','Escritório','Espaço comercial','Divisões específicas da casa','Outra limpeza']
+        && d.updatedAt == request.time;
+    }
+    match /quoteCounters/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && id == 'main' && request.resource.data.keys().hasOnly(['value']) && request.resource.data.value == 1;
+      allow update: if isAdmin() && id == 'main' && request.resource.data.keys().hasOnly(['value']) && request.resource.data.value == resource.data.value + 1;
+    }
+    match /quotes/{id} {
+      allow read: if isAdmin();
+      allow delete: if isAdmin() && resource.data.get('serviceId','') == '';
+      allow create: if isAdmin() && validId(id) && quoteFields(request.resource.data)
+        && request.resource.data.keys().hasOnly(['name','email','address','title','date','valid','frequency','type','discount','vat','taxnote','scope','terms','materials','notes','clientId','lines','number','revision','parentId','status','serviceId','linkId','createdAt','updatedAt'])
+        && request.resource.data.status == 'rascunho' && request.resource.data.serviceId == ''
+        && request.resource.data.number is string && request.resource.data.number.size() <= 30
+        && request.resource.data.revision is int && request.resource.data.revision > 0
+        && request.resource.data.parentId is string
+        && request.resource.data.createdAt == request.time;
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','serviceId','linkId','updatedAt'])
+        && request.resource.data.status in ['rascunho','enviado','aceite','recusado','expirado']
+        && (request.resource.data.get('linkId','') == '' || (
+          request.resource.data.linkId.matches('^[a-f0-9]{64}$')
+          && (request.resource.data.status != 'aceite' || (
+            getAfter(/databases/$(database)/documents/quoteLinks/$(request.resource.data.linkId)).data.status == 'accepted'
+            && getAfter(/databases/$(database)/documents/quoteLinks/$(request.resource.data.linkId)).data.quoteId == id))))
+        && request.resource.data.updatedAt == request.time
+        && (request.resource.data.serviceId == resource.data.serviceId
+          || (resource.data.serviceId == '' && request.resource.data.status == 'aceite'
+            && request.resource.data.serviceId == 'quote-' + id
+            && getAfter(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.clientId == resource.data.clientId));
+    }
+    match /quoteTemplates/{id} {
+      allow read, delete: if isAdmin();
+      allow create, update: if isAdmin() && validId(id)
+        && request.resource.data.keys().hasOnly(['title','frequency','type','discount','vat','taxnote','scope','terms','materials','lines','updatedAt'])
+        && request.resource.data.title is string && request.resource.data.title.size() <= 150
+        && request.resource.data.scope is string && request.resource.data.scope.size() <= 5000
+        && request.resource.data.terms is string && request.resource.data.terms.size() <= 5000
+        && request.resource.data.lines is list && request.resource.data.lines.size() > 0 && request.resource.data.lines.size() <= 30
+        && request.resource.data.updatedAt == request.time;
+    }
+    function cleanPublicQuote(d) {
+      return d.keys().hasOnly(['name','title','date','valid','frequency','type','discount','vat','taxnote','scope','terms','materials','lines','number','revision'])
+        && d.keys().hasAll(['name','title','date','valid','frequency','type','discount','vat','taxnote','scope','terms','materials','lines','number','revision']);
+    }
+    function linkShape(d) {
+      return d.keys().hasOnly(['quoteId','quote','status','expiresAt','clientChoice','clientComment','clientAt','finalComment','finalAt','history','updatedAt'])
+        && cleanPublicQuote(d.quote)
+        && validId(d.quoteId) && d.expiresAt is timestamp
+        && d.history is list && d.history.size() <= 20
+        && d.clientComment is string && d.clientComment.size() <= 2000
+        && d.finalComment is string && d.finalComment.size() <= 2000
+        && d.updatedAt == request.time;
+    }
+    function snapshotMatches(d) {
+      let q = getAfter(/databases/$(database)/documents/quotes/$(d.quoteId)).data;
+      return d.quote.name == q.name && d.quote.title == q.title && d.quote.date == q.date
+        && d.quote.valid == q.valid && d.quote.frequency == q.frequency && d.quote.type == q.type
+        && d.quote.discount == q.discount && d.quote.vat == q.vat && d.quote.taxnote == q.taxnote
+        && d.quote.scope == q.scope && d.quote.terms == q.terms && d.quote.materials == q.materials
+        && d.quote.lines == q.lines && d.quote.number == q.number && d.quote.revision == q.revision;
+    }
+    match /quoteLinks/{token} {
+      allow delete: if isAdmin()
+        && (!exists(/databases/$(database)/documents/quotes/$(resource.data.quoteId))
+          || get(/databases/$(database)/documents/quotes/$(resource.data.quoteId)).data.get('serviceId','') == '');
+      allow list: if isAdmin();
+      allow get: if isAdmin() || (token.matches('^[a-f0-9]{64}$') && resource.data.status != 'revoked');
+      allow create: if isAdmin() && token.matches('^[a-f0-9]{64}$')
+        && linkShape(request.resource.data) && snapshotMatches(request.resource.data)
+        && request.resource.data.status == 'awaiting_client'
+        && request.resource.data.clientChoice == '' && request.resource.data.clientComment == ''
+        && request.resource.data.clientAt == null && request.resource.data.finalAt == null
+        && request.resource.data.finalComment == '' && request.resource.data.history.size() == 0
+        && request.resource.data.expiresAt > request.time;
+      allow update: if (isAdmin() && linkShape(request.resource.data) && (
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt']) && request.resource.data.status == 'revoked')
+        || (resource.data.status == 'awaiting_geslimp'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','finalComment','finalAt','updatedAt'])
+          && request.resource.data.status in ['accepted','refused']
+          && (request.resource.data.status != 'accepted' || resource.data.clientChoice == 'accepted')
+          && request.resource.data.finalComment.size() > 0 && request.resource.data.finalAt == request.time)
+        || (resource.data.status != 'revoked' && request.resource.data.quoteId != resource.data.quoteId
+          && getAfter(/databases/$(database)/documents/quotes/$(request.resource.data.quoteId)).data.parentId == resource.data.quoteId
+          && snapshotMatches(request.resource.data)
+          && request.resource.data.status == 'awaiting_client' && request.resource.data.expiresAt > request.time
+          && request.resource.data.clientChoice == '' && request.resource.data.clientComment == ''
+          && request.resource.data.clientAt == null && request.resource.data.finalAt == null && request.resource.data.finalComment == ''
+          && request.resource.data.history.size() == resource.data.history.size() + 1)
+      )) || (
+        request.auth != null && token.matches('^[a-f0-9]{64}$')
+        && resource.data.status == 'awaiting_client' && resource.data.expiresAt > request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','clientChoice','clientComment','clientAt','updatedAt'])
+        && request.resource.data.status == 'awaiting_geslimp'
+        && request.resource.data.clientChoice in ['accepted','refused']
+        && request.resource.data.clientComment is string && request.resource.data.clientComment.size() <= 2000
+        && (request.resource.data.clientChoice != 'refused' || request.resource.data.clientComment.size() > 0)
+        && request.resource.data.clientAt == request.time && request.resource.data.updatedAt == request.time
+      );
+    }
+
+    function employeeReference(d) {
+      let id = d.get('employeeId','');
+      return id is string && (id == '' || (validId(id) && exists(/databases/$(database)/documents/employees/$(id))));
+    }
+    function activeEmployee(id) {
+      return id == '' || get(/databases/$(database)/documents/employees/$(id)).data.status == 'ativo';
+    }
+    function changedEmployeeAllowed(next, previous) {
+      return next.get('employeeId','') == previous.get('employeeId','') || activeEmployee(next.get('employeeId',''));
+    }
+    function employeeRoleLevel(role) {
+      return role == 'CEO / Gerente' ? 0 :
+        (role in ['Gestor de operações','Supervisor','Encarregado','Responsável de qualidade','Responsável de segurança'] ? 1 :
+        (role in ['Administrativo','Comercial','Atendimento ao cliente','Responsável de armazém','Manutenção','Motorista'] ? 2 : 3));
+    }
+    function validEmployee(d,id) {
+      return d.keys().hasOnly(['name','phone','email','address','postcode','city','taxId','birthDate','role','jobTitle','department','managerId','entryDate','contractType','contractEnd','exitDate','status','notes','photoData','createdAt','updatedAt'])
+        && d.keys().hasAll(['name','phone','email','address','postcode','city','taxId','birthDate','role','jobTitle','department','managerId','entryDate','contractType','contractEnd','exitDate','status','notes','photoData','createdAt','updatedAt'])
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 100
+        && d.phone is string && d.phone.size() <= 40 && d.email is string && d.email.size() <= 150
+        && d.address is string && d.address.size() <= 300
+        && d.postcode is string && (d.postcode == '' || d.postcode.matches('^[0-9]{4}-[0-9]{3}$'))
+        && d.city is string && d.city.size() <= 100
+        && d.taxId is string && (d.taxId == '' || d.taxId.matches('^[0-9]{9}$'))
+        && d.birthDate is string && (d.birthDate == '' || (validDay(d.birthDate) && d.birthDate <= d.entryDate))
+        && d.role in ['CEO / Gerente','Gestor de operações','Supervisor','Encarregado','Responsável de qualidade','Responsável de segurança','Administrativo','Comercial','Atendimento ao cliente','Responsável de armazém','Manutenção','Motorista','Técnico de limpeza','Auxiliar de limpeza','Limpeza industrial','Housekeeping','Outra função']
+        && d.jobTitle is string && d.jobTitle.size() <= 100 && d.department is string && d.department.size() <= 100
+        && d.managerId is string && (d.managerId == '' || (validId(d.managerId) && d.managerId != id
+          && employeeRoleLevel(get(/databases/$(database)/documents/employees/$(d.managerId)).data.role) < employeeRoleLevel(d.role)))
+        && d.entryDate is string && validDay(d.entryDate)
+        && d.contractType in ['Sem termo','A termo certo','A termo incerto','Prestação de serviços','Estágio','Gerência / administração','Não aplicável','Outro']
+        && d.contractEnd is string && (d.contractEnd == '' || (validDay(d.contractEnd) && d.contractEnd >= d.entryDate))
+        && d.exitDate is string && (d.exitDate == '' || (validDay(d.exitDate) && d.exitDate >= d.entryDate))
+        && d.status in ['ativo','inativo'] && (d.status == 'inativo' || d.exitDate == '')
+        && d.notes is string && d.notes.size() <= 5000
+        && d.photoData is string && d.photoData.size() <= 180000
+        && (d.photoData == '' || d.photoData.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$'))
+        && d.createdAt is timestamp && d.updatedAt == request.time;
+    }
+    match /employees/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && validId(id) && validEmployee(request.resource.data,id)
+        && request.resource.data.createdAt == request.time;
+      allow update: if isAdmin() && validId(id) && validEmployee(request.resource.data,id)
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false;
+    }
+
+    // Stock: o inventário e os movimentos são atualizados na mesma transação.
+    function stockItemShape(d) {
+      return d.keys().hasOnly(['name','brand','kind','category','unit','minQtyMilli','reference','archived','notes','photoData','qtyMilli','onLoanMilli','inventoryValueCents','lastMovementId','lastSupplierId','createdAt','updatedAt'])
+        && d.keys().hasAll(['name','brand','kind','category','unit','minQtyMilli','reference','archived','notes','photoData','qtyMilli','onLoanMilli','inventoryValueCents','lastMovementId','lastSupplierId','createdAt','updatedAt'])
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 150
+        && d.brand is string && d.brand.size() <= 100 && d.category is string && d.category.size() <= 100
+        && d.kind in ['consumable','equipment'] && d.unit in ['unidade','embalagem','litro','kg']
+        && (d.kind != 'equipment' || (d.unit == 'unidade' && d.qtyMilli % 1000 == 0 && d.onLoanMilli % 1000 == 0))
+        && d.minQtyMilli is int && d.minQtyMilli >= 0 && d.minQtyMilli <= 10000000
+        && d.qtyMilli is int && d.qtyMilli >= 0 && d.qtyMilli <= 10000000
+        && d.onLoanMilli is int && d.onLoanMilli >= 0 && d.onLoanMilli <= 10000000
+        && (d.kind == 'equipment' || d.onLoanMilli == 0)
+        && d.inventoryValueCents is int && d.inventoryValueCents >= 0 && d.inventoryValueCents <= 1000000000
+        && d.reference is string && d.reference.size() <= 150 && d.archived is bool
+        && (!d.archived || (d.qtyMilli == 0 && d.onLoanMilli == 0))
+        && d.notes is string && d.notes.size() <= 3000
+        && d.photoData is string && d.photoData.size() <= 180000
+        && (d.photoData == '' || d.photoData.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$'))
+        && d.lastMovementId is string && d.lastSupplierId is string
+        && d.createdAt is timestamp && d.updatedAt == request.time;
+    }
+    function stockMovementShape(d) {
+      return d.keys().hasOnly(['itemId','kind','qtyMilli','unitPriceCents','totalCents','employeeId','clientId','clientName','serviceId','supplierId','day','dueDay','loanId','notes','createdAt'])
+        && d.keys().hasAll(['itemId','kind','qtyMilli','unitPriceCents','totalCents','employeeId','clientId','clientName','serviceId','supplierId','day','dueDay','loanId','notes','createdAt'])
+        && d.itemId is string && validId(d.itemId) && d.kind in ['purchase','issue','loan','return']
+        && d.qtyMilli is int && d.qtyMilli > 0 && d.qtyMilli <= 10000000
+        && d.unitPriceCents is int && d.unitPriceCents >= 0 && d.unitPriceCents <= 10000000
+        && d.totalCents is int && d.totalCents >= 0 && d.totalCents <= 1000000000
+        && d.employeeId is string && d.clientId is string && d.clientName is string && d.clientName.size() <= 100 && d.serviceId is string && d.supplierId is string
+        && d.day is string && validDay(d.day) && d.dueDay is string && d.loanId is string
+        && d.notes is string && d.notes.size() <= 3000 && d.createdAt == request.time;
+    }
+    function stockDelta(id,old,next) {
+      let m = getAfter(/databases/$(database)/documents/stockMovements/$(next.lastMovementId)).data;
+      return !exists(/databases/$(database)/documents/stockMovements/$(next.lastMovementId))
+        && m.itemId == id && m.createdAt == request.time && next.lastMovementId != old.lastMovementId
+        && ((m.kind == 'purchase' && next.qtyMilli == old.qtyMilli + m.qtyMilli
+          && next.onLoanMilli == old.onLoanMilli && next.inventoryValueCents == old.inventoryValueCents + m.totalCents
+          && next.lastSupplierId == m.supplierId)
+        || (m.kind == 'issue' && next.kind == 'consumable' && m.qtyMilli <= old.qtyMilli
+          && next.qtyMilli == old.qtyMilli - m.qtyMilli && next.onLoanMilli == old.onLoanMilli
+          && next.inventoryValueCents == old.inventoryValueCents - m.totalCents && next.lastSupplierId == old.lastSupplierId)
+        || (m.kind == 'loan' && next.kind == 'equipment' && m.qtyMilli <= old.qtyMilli
+          && next.qtyMilli == old.qtyMilli - m.qtyMilli && next.onLoanMilli == old.onLoanMilli + m.qtyMilli
+          && next.inventoryValueCents == old.inventoryValueCents && next.lastSupplierId == old.lastSupplierId)
+        || (m.kind == 'return' && next.kind == 'equipment' && m.qtyMilli <= old.onLoanMilli
+          && next.qtyMilli == old.qtyMilli + m.qtyMilli && next.onLoanMilli == old.onLoanMilli - m.qtyMilli
+          && next.inventoryValueCents == old.inventoryValueCents && next.lastSupplierId == old.lastSupplierId));
+    }
+    match /stockItems/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && validId(id) && stockItemShape(request.resource.data) && request.resource.data.createdAt == request.time
+        && ((request.resource.data.qtyMilli == 0 && request.resource.data.onLoanMilli == 0 && request.resource.data.inventoryValueCents == 0 && request.resource.data.lastMovementId == '' && request.resource.data.lastSupplierId == '')
+          || stockDelta(id,{'qtyMilli':0,'onLoanMilli':0,'inventoryValueCents':0,'lastMovementId':'','lastSupplierId':''},request.resource.data));
+      allow update: if isAdmin() && stockItemShape(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt && request.resource.data.kind == resource.data.kind && request.resource.data.unit == resource.data.unit
+        && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','brand','category','minQtyMilli','reference','archived','notes','photoData','updatedAt'])
+          || (!resource.data.archived && !request.resource.data.archived && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qtyMilli','onLoanMilli','inventoryValueCents','lastMovementId','lastSupplierId','updatedAt']) && stockDelta(id,resource.data,request.resource.data)));
+      allow delete: if false;
+    }
+    function stockIssueClient(d) {
+      return (d.clientId == '' && d.clientName == '' && d.serviceId == '') || (validId(d.clientId) && exists(/databases/$(database)/documents/clients/$(d.clientId)) && d.clientName == get(/databases/$(database)/documents/clients/$(d.clientId)).data.name
+        && (d.serviceId == '' || (validId(d.serviceId) && get(/databases/$(database)/documents/services/$(d.serviceId)).data.clientId == d.clientId)));
+    }
+    function stockMovementKind(d,id,old) {
+      return (d.kind == 'purchase' && d.employeeId == '' && d.clientId == '' && d.clientName == '' && d.serviceId == '' && d.dueDay == '' && d.loanId == ''
+          && validId(d.supplierId) && existsAfter(/databases/$(database)/documents/stockSuppliers/$(d.supplierId))
+          && d.totalCents == int(d.qtyMilli * d.unitPriceCents / 1000 + 0.5))
+        || (d.kind == 'issue' && old.kind == 'consumable' && d.supplierId == '' && d.dueDay == '' && d.loanId == '' && d.unitPriceCents == 0
+          && validId(d.employeeId) && get(/databases/$(database)/documents/employees/$(d.employeeId)).data.status == 'ativo'
+          && d.qtyMilli <= old.qtyMilli && stockIssueClient(d)
+          && d.totalCents == int(old.inventoryValueCents * d.qtyMilli / old.qtyMilli + 0.5))
+        || (d.kind == 'loan' && old.kind == 'equipment' && d.qtyMilli % 1000 == 0 && d.totalCents == 0 && d.unitPriceCents == 0 && d.supplierId == '' && d.clientId == '' && d.clientName == '' && d.serviceId == ''
+          && d.loanId == id && (d.dueDay == '' || (validDay(d.dueDay) && d.dueDay >= d.day))
+          && get(/databases/$(database)/documents/employees/$(d.employeeId)).data.status == 'ativo'
+          && getAfter(/databases/$(database)/documents/stockLoans/$(id)).data.itemId == d.itemId
+          && getAfter(/databases/$(database)/documents/stockLoans/$(id)).data.qtyMilli == d.qtyMilli)
+        || (d.kind == 'return' && old.kind == 'equipment' && d.qtyMilli % 1000 == 0 && d.totalCents == 0 && d.unitPriceCents == 0 && d.supplierId == '' && d.clientId == '' && d.clientName == '' && d.serviceId == '' && d.dueDay == ''
+          && validId(d.loanId) && get(/databases/$(database)/documents/stockLoans/$(d.loanId)).data.itemId == d.itemId
+          && get(/databases/$(database)/documents/stockLoans/$(d.loanId)).data.employeeId == d.employeeId
+          && get(/databases/$(database)/documents/stockLoans/$(d.loanId)).data.status == 'open'
+          && d.day >= get(/databases/$(database)/documents/stockLoans/$(d.loanId)).data.day
+          && getAfter(/databases/$(database)/documents/stockLoans/$(d.loanId)).data.remainingMilli == get(/databases/$(database)/documents/stockLoans/$(d.loanId)).data.remainingMilli - d.qtyMilli
+          && getAfter(/databases/$(database)/documents/stockLoans/$(d.loanId)).data.lastReturnId == id);
+    }
+    match /stockMovements/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && validId(id) && stockMovementShape(request.resource.data)
+        && getAfter(/databases/$(database)/documents/stockItems/$(request.resource.data.itemId)).data.lastMovementId == id
+        && stockMovementKind(request.resource.data,id,exists(/databases/$(database)/documents/stockItems/$(request.resource.data.itemId)) ? get(/databases/$(database)/documents/stockItems/$(request.resource.data.itemId)).data : {'kind':'consumable','qtyMilli':0,'inventoryValueCents':0});
+      allow update, delete: if false;
+    }
+    function stockLoanShape(d) {
+      return d.keys().hasOnly(['itemId','employeeId','qtyMilli','remainingMilli','day','dueDay','status','lastReturnId','createdAt','updatedAt'])
+        && d.itemId is string && validId(d.itemId) && d.employeeId is string && validId(d.employeeId)
+        && d.qtyMilli is int && d.qtyMilli > 0 && d.qtyMilli % 1000 == 0
+        && d.remainingMilli is int && d.remainingMilli >= 0 && d.remainingMilli <= d.qtyMilli && d.remainingMilli % 1000 == 0
+        && d.day is string && validDay(d.day) && d.dueDay is string && (d.dueDay == '' || (validDay(d.dueDay) && d.dueDay >= d.day))
+        && ((d.remainingMilli > 0 && d.status == 'open') || (d.remainingMilli == 0 && d.status == 'returned'))
+        && d.lastReturnId is string && d.createdAt is timestamp && d.updatedAt == request.time;
+    }
+    match /stockLoans/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && validId(id) && stockLoanShape(request.resource.data)
+        && request.resource.data.remainingMilli == request.resource.data.qtyMilli && request.resource.data.lastReturnId == ''
+        && request.resource.data.createdAt == request.time
+        && getAfter(/databases/$(database)/documents/stockMovements/$(id)).data.kind == 'loan'
+        && getAfter(/databases/$(database)/documents/stockMovements/$(id)).data.employeeId == request.resource.data.employeeId
+        && getAfter(/databases/$(database)/documents/stockMovements/$(id)).data.day == request.resource.data.day
+        && getAfter(/databases/$(database)/documents/stockMovements/$(id)).data.dueDay == request.resource.data.dueDay
+        && getAfter(/databases/$(database)/documents/stockMovements/$(id)).data.itemId == request.resource.data.itemId
+        && getAfter(/databases/$(database)/documents/stockMovements/$(id)).data.qtyMilli == request.resource.data.qtyMilli;
+      allow update: if isAdmin() && stockLoanShape(request.resource.data) && resource.data.status == 'open'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['remainingMilli','status','lastReturnId','updatedAt'])
+        && request.resource.data.remainingMilli < resource.data.remainingMilli
+        && !exists(/databases/$(database)/documents/stockMovements/$(request.resource.data.lastReturnId))
+        && getAfter(/databases/$(database)/documents/stockMovements/$(request.resource.data.lastReturnId)).data.kind == 'return'
+        && getAfter(/databases/$(database)/documents/stockMovements/$(request.resource.data.lastReturnId)).data.loanId == id
+        && request.resource.data.remainingMilli == resource.data.remainingMilli - getAfter(/databases/$(database)/documents/stockMovements/$(request.resource.data.lastReturnId)).data.qtyMilli;
+      allow delete: if false;
+    }
+    match /stockSuppliers/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && validId(id) && request.resource.data.keys().hasOnly(['name','createdAt'])
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100 && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+    match /clientReceipts/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && validId(id)
+        && request.resource.data.keys().hasOnly(['clientId','clientName','serviceId','amountCents','day','notes','status','cancelReason','createdAt','updatedAt'])
+        && request.resource.data.clientId is string && validId(request.resource.data.clientId) && exists(/databases/$(database)/documents/clients/$(request.resource.data.clientId))
+        && request.resource.data.serviceId is string && (request.resource.data.serviceId == '' || get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.clientId == request.resource.data.clientId)
+        && request.resource.data.clientName == get(/databases/$(database)/documents/clients/$(request.resource.data.clientId)).data.name
+        && request.resource.data.amountCents is int && request.resource.data.amountCents > 0 && request.resource.data.amountCents <= 100000000
+        && request.resource.data.day is string && validDay(request.resource.data.day)
+        && request.resource.data.notes is string && request.resource.data.notes.size() <= 3000
+        && request.resource.data.status == 'received' && request.resource.data.cancelReason == ''
+        && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time;
+      allow update: if isAdmin() && resource.data.status == 'received'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','cancelReason','updatedAt'])
+        && request.resource.data.status == 'cancelled' && request.resource.data.cancelReason is string
+        && request.resource.data.cancelReason.size() > 0 && request.resource.data.cancelReason.size() <= 1000 && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
+
+    // Tudo o que não foi autorizado explicitamente continua privado.
+    match /{document=**} { allow read, write: if false; }
+  }
+}
