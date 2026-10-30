@@ -324,6 +324,152 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Stock: o inventário e os movimentos são atualizados na mesma transação.
+    function stockItemShape(d) {
+      return d.keys().hasOnly(['name','brand','kind','category','unit','minQtyMilli','reference','archived','notes','photoData','qtyMilli','onLoanMilli','inventoryValueCents','lastMovementId','lastSupplierId','createdAt','updatedAt'])
+        && d.keys().hasAll(['name','brand','kind','category','unit','minQtyMilli','reference','archived','notes','photoData','qtyMilli','onLoanMilli','inventoryValueCents','lastMovementId','lastSupplierId','createdAt','updatedAt'])
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 150
+        && d.brand is string && d.brand.size() <= 100 && d.category is string && d.category.size() <= 100
+        && d.kind in ['consumable','equipment'] && d.unit in ['unidade','embalagem','litro','kg']
+        && (d.kind != 'equipment' || (d.unit == 'unidade' && d.qtyMilli % 1000 == 0 && d.onLoanMilli % 1000 == 0))
+        && d.minQtyMilli is int && d.minQtyMilli >= 0 && d.minQtyMilli <= 10000000
+        && d.qtyMilli is int && d.qtyMilli >= 0 && d.qtyMilli <= 10000000
+        && d.onLoanMilli is int && d.onLoanMilli >= 0 && d.onLoanMilli <= 10000000
+        && (d.kind == 'equipment' || d.onLoanMilli == 0)
+        && d.inventoryValueCents is int && d.inventoryValueCents >= 0 && d.inventoryValueCents <= 1000000000
+        && d.reference is string && d.reference.size() <= 150 && d.archived is bool
+        && (!d.archived || (d.qtyMilli == 0 && d.onLoanMilli == 0))
+        && d.notes is string && d.notes.size() <= 3000
+        && d.photoData is string && d.photoData.size() <= 180000
+        && (d.photoData == '' || d.photoData.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$'))
+        && d.lastMovementId is string && d.lastSupplierId is string
+        && d.createdAt is timestamp && d.updatedAt == request.time;
+    }
+    function stockMovementShape(d) {
+      return d.keys().hasOnly(['itemId','kind','qtyMilli','unitPriceCents','totalCents','employeeId','clientId','clientName','serviceId','supplierId','day','dueDay','loanId','notes','createdAt'])
+        && d.keys().hasAll(['itemId','kind','qtyMilli','unitPriceCents','totalCents','employeeId','clientId','clientName','serviceId','supplierId','day','dueDay','loanId','notes','createdAt'])
+        && d.itemId is string && validId(d.itemId) && d.kind in ['purchase','issue','loan','return']
+        && d.qtyMilli is int && d.qtyMilli > 0 && d.qtyMilli <= 10000000
+        && d.unitPriceCents is int && d.unitPriceCents >= 0 && d.unitPriceCents <= 10000000
+        && d.totalCents is int && d.totalCents >= 0 && d.totalCents <= 1000000000
+        && d.employeeId is string && d.clientId is string && d.clientName is string && d.clientName.size() <= 100 && d.serviceId is string && d.supplierId is string
+        && d.day is string && validDay(d.day) && d.dueDay is string && d.loanId is string
+        && d.notes is string && d.notes.size() <= 3000 && d.createdAt == request.time;
+    }
+    function stockDelta(id,old,next) {
+      let m = getAfter(/databases/$(database)/documents/stockMovements/$(next.lastMovementId)).data;
+      return !exists(/databases/$(database)/documents/stockMovements/$(next.lastMovementId))
+        && m.itemId == id && m.createdAt == request.time && next.lastMovementId != old.lastMovementId
+        && ((m.kind == 'purchase' && next.qtyMilli == old.qtyMilli + m.qtyMilli
+          && next.onLoanMilli == old.onLoanMilli && next.inventoryValueCents == old.inventoryValueCents + m.totalCents
+          && next.lastSupplierId == m.supplierId)
+        || (m.kind == 'issue' && next.kind == 'consumable' && m.qtyMilli <= old.qtyMilli
+          && next.qtyMilli == old.qtyMilli - m.qtyMilli && next.onLoanMilli == old.onLoanMilli
+          && next.inventoryValueCents == old.inventoryValueCents - m.totalCents && next.lastSupplierId == old.lastSupplierId)
+        || (m.kind == 'loan' && next.kind == 'equipment' && m.qtyMilli <= old.qtyMilli
+          && next.qtyMilli == old.qtyMilli - m.qtyMilli && next.onLoanMilli == old.onLoanMilli + m.qtyMilli
+          && next.inventoryValueCents == old.inventoryValueCents && next.lastSupplierId == old.lastSupplierId)
+        || (m.kind == 'return' && next.kind == 'equipment' && m.qtyMilli <= old.onLoanMilli
+          && next.qtyMilli == old.qtyMilli + m.qtyMilli && next.onLoanMilli == old.onLoanMilli - m.qtyMilli
+          && next.inventoryValueCents == old.inventoryValueCents && next.lastSupplierId == old.lastSupplierId));
+    }
+    match /stockItems/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && validId(id) && stockItemShape(request.resource.data) && request.resource.data.createdAt == request.time
+        && ((request.resource.data.qtyMilli == 0 && request.resource.data.onLoanMilli == 0 && request.resource.data.inventoryValueCents == 0 && request.resource.data.lastMovementId == '' && request.resource.data.lastSupplierId == '')
+          || stockDelta(id,{'qtyMilli':0,'onLoanMilli':0,'inventoryValueCents':0,'lastMovementId':'','lastSupplierId':''},request.resource.data));
+      allow update: if isAdmin() && stockItemShape(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt && request.resource.data.kind == resource.data.kind && request.resource.data.unit == resource.data.unit
+        && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','brand','category','minQtyMilli','reference','archived','notes','photoData','updatedAt'])
+          || (!resource.data.archived && !request.resource.data.archived && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qtyMilli','onLoanMilli','inventoryValueCents','lastMovementId','lastSupplierId','updatedAt']) && stockDelta(id,resource.data,request.resource.data)));
+      allow delete: if false;
+    }
+    function stockIssueClient(d) {
+      return (d.clientId == '' && d.clientName == '' && d.serviceId == '') || (validId(d.clientId) && exists(/databases/$(database)/documents/clients/$(d.clientId)) && d.clientName == get(/databases/$(database)/documents/clients/$(d.clientId)).data.name
+        && (d.serviceId == '' || (validId(d.serviceId) && get(/databases/$(database)/documents/services/$(d.serviceId)).data.clientId == d.clientId)));
+    }
+    function stockMovementKind(d,id,old) {
+      return (d.kind == 'purchase' && d.employeeId == '' && d.clientId == '' && d.clientName == '' && d.serviceId == '' && d.dueDay == '' && d.loanId == ''
+          && validId(d.supplierId) && existsAfter(/databases/$(database)/documents/stockSuppliers/$(d.supplierId))
+          && d.totalCents == int(d.qtyMilli * d.unitPriceCents / 1000 + 0.5))
+        || (d.kind == 'issue' && old.kind == 'consumable' && d.supplierId == '' && d.dueDay == '' && d.loanId == '' && d.unitPriceCents == 0
+          && validId(d.employeeId) && get(/databases/$(database)/documents/employees/$(d.employeeId)).data.status == 'ativo'
+          && d.qtyMilli <= old.qtyMilli && stockIssueClient(d)
+          && d.totalCents == int(old.inventoryValueCents * d.qtyMilli / old.qtyMilli + 0.5))
+        || (d.kind == 'loan' && old.kind == 'equipment' && d.qtyMilli % 1000 == 0 && d.totalCents == 0 && d.unitPriceCents == 0 && d.supplierId == '' && d.clientId == '' && d.clientName == '' && d.serviceId == ''
+          && d.loanId == id && (d.dueDay == '' || (validDay(d.dueDay) && d.dueDay >= d.day))
+          && get(/databases/$(database)/documents/employees/$(d.employeeId)).data.status == 'ativo'
+          && getAfter(/databases/$(database)/documents/stockLoans/$(id)).data.itemId == d.itemId
+          && getAfter(/databases/$(database)/documents/stockLoans/$(id)).data.qtyMilli == d.qtyMilli)
+        || (d.kind == 'return' && old.kind == 'equipment' && d.qtyMilli % 1000 == 0 && d.totalCents == 0 && d.unitPriceCents == 0 && d.supplierId == '' && d.clientId == '' && d.clientName == '' && d.serviceId == '' && d.dueDay == ''
+          && validId(d.loanId) && get(/databases/$(database)/documents/stockLoans/$(d.loanId)).data.itemId == d.itemId
+          && get(/databases/$(database)/documents/stockLoans/$(d.loanId)).data.employeeId == d.employeeId
+          && get(/databases/$(database)/documents/stockLoans/$(d.loanId)).data.status == 'open'
+          && d.day >= get(/databases/$(database)/documents/stockLoans/$(d.loanId)).data.day
+          && getAfter(/databases/$(database)/documents/stockLoans/$(d.loanId)).data.remainingMilli == get(/databases/$(database)/documents/stockLoans/$(d.loanId)).data.remainingMilli - d.qtyMilli
+          && getAfter(/databases/$(database)/documents/stockLoans/$(d.loanId)).data.lastReturnId == id);
+    }
+    match /stockMovements/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && validId(id) && stockMovementShape(request.resource.data)
+        && getAfter(/databases/$(database)/documents/stockItems/$(request.resource.data.itemId)).data.lastMovementId == id
+        && stockMovementKind(request.resource.data,id,exists(/databases/$(database)/documents/stockItems/$(request.resource.data.itemId)) ? get(/databases/$(database)/documents/stockItems/$(request.resource.data.itemId)).data : {'kind':'consumable','qtyMilli':0,'inventoryValueCents':0});
+      allow update, delete: if false;
+    }
+    function stockLoanShape(d) {
+      return d.keys().hasOnly(['itemId','employeeId','qtyMilli','remainingMilli','day','dueDay','status','lastReturnId','createdAt','updatedAt'])
+        && d.itemId is string && validId(d.itemId) && d.employeeId is string && validId(d.employeeId)
+        && d.qtyMilli is int && d.qtyMilli > 0 && d.qtyMilli % 1000 == 0
+        && d.remainingMilli is int && d.remainingMilli >= 0 && d.remainingMilli <= d.qtyMilli && d.remainingMilli % 1000 == 0
+        && d.day is string && validDay(d.day) && d.dueDay is string && (d.dueDay == '' || (validDay(d.dueDay) && d.dueDay >= d.day))
+        && ((d.remainingMilli > 0 && d.status == 'open') || (d.remainingMilli == 0 && d.status == 'returned'))
+        && d.lastReturnId is string && d.createdAt is timestamp && d.updatedAt == request.time;
+    }
+    match /stockLoans/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && validId(id) && stockLoanShape(request.resource.data)
+        && request.resource.data.remainingMilli == request.resource.data.qtyMilli && request.resource.data.lastReturnId == ''
+        && request.resource.data.createdAt == request.time
+        && getAfter(/databases/$(database)/documents/stockMovements/$(id)).data.kind == 'loan'
+        && getAfter(/databases/$(database)/documents/stockMovements/$(id)).data.employeeId == request.resource.data.employeeId
+        && getAfter(/databases/$(database)/documents/stockMovements/$(id)).data.day == request.resource.data.day
+        && getAfter(/databases/$(database)/documents/stockMovements/$(id)).data.dueDay == request.resource.data.dueDay
+        && getAfter(/databases/$(database)/documents/stockMovements/$(id)).data.itemId == request.resource.data.itemId
+        && getAfter(/databases/$(database)/documents/stockMovements/$(id)).data.qtyMilli == request.resource.data.qtyMilli;
+      allow update: if isAdmin() && stockLoanShape(request.resource.data) && resource.data.status == 'open'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['remainingMilli','status','lastReturnId','updatedAt'])
+        && request.resource.data.remainingMilli < resource.data.remainingMilli
+        && !exists(/databases/$(database)/documents/stockMovements/$(request.resource.data.lastReturnId))
+        && getAfter(/databases/$(database)/documents/stockMovements/$(request.resource.data.lastReturnId)).data.kind == 'return'
+        && getAfter(/databases/$(database)/documents/stockMovements/$(request.resource.data.lastReturnId)).data.loanId == id
+        && request.resource.data.remainingMilli == resource.data.remainingMilli - getAfter(/databases/$(database)/documents/stockMovements/$(request.resource.data.lastReturnId)).data.qtyMilli;
+      allow delete: if false;
+    }
+    match /stockSuppliers/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && validId(id) && request.resource.data.keys().hasOnly(['name','createdAt'])
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100 && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+    match /clientReceipts/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && validId(id)
+        && request.resource.data.keys().hasOnly(['clientId','clientName','serviceId','amountCents','day','notes','status','cancelReason','createdAt','updatedAt'])
+        && request.resource.data.clientId is string && validId(request.resource.data.clientId) && exists(/databases/$(database)/documents/clients/$(request.resource.data.clientId))
+        && request.resource.data.serviceId is string && (request.resource.data.serviceId == '' || get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.clientId == request.resource.data.clientId)
+        && request.resource.data.clientName == get(/databases/$(database)/documents/clients/$(request.resource.data.clientId)).data.name
+        && request.resource.data.amountCents is int && request.resource.data.amountCents > 0 && request.resource.data.amountCents <= 100000000
+        && request.resource.data.day is string && validDay(request.resource.data.day)
+        && request.resource.data.notes is string && request.resource.data.notes.size() <= 3000
+        && request.resource.data.status == 'received' && request.resource.data.cancelReason == ''
+        && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time;
+      allow update: if isAdmin() && resource.data.status == 'received'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','cancelReason','updatedAt'])
+        && request.resource.data.status == 'cancelled' && request.resource.data.cancelReason is string
+        && request.resource.data.cancelReason.size() > 0 && request.resource.data.cancelReason.size() <= 1000 && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
+
     // Tudo o que não foi autorizado explicitamente continua privado.
     match /{document=**} { allow read, write: if false; }
   }
