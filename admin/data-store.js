@@ -79,7 +79,7 @@ export function createDataStore(api, db) {
         const c = client.data();
         if (!c.phone?.trim() || !c.address?.trim() || !c.postcode?.trim() || !c.city?.trim()) throw Error('Completa primeiro o contacto e a morada na ficha do cliente.');
         if (existing.exists() && existing.data().clientId !== fields.clientId) throw Error('Este serviço pertence a outro cliente.');
-        tx.set(ref,{...fields,createdAt:existing.exists() ? existing.data().createdAt : serverTimestamp(),updatedAt:serverTimestamp()});
+        tx.set(ref,{...(existing.data()?.employeeId!==undefined?{employeeId:existing.data().employeeId}:{}),...fields,createdAt:existing.exists() ? existing.data().createdAt : serverTimestamp(),updatedAt:serverTimestamp()});
       });
       return ref.id;
     },

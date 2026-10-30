@@ -35,7 +35,7 @@ service cloud.firestore {
           && existsAfter(/databases/$(database)/documents/clients/$(data.clientId))));
     }
     function validClient(data) {
-      return data.keys().hasOnly(['name','phone','email','address','postcode','city','type','service','serviceDetails','notes','clientSince','createdAt','updatedAt'])
+      return employeeReference(data) && data.keys().hasOnly(['name','phone','email','address','postcode','city','type','service','serviceDetails','notes','clientSince','createdAt','updatedAt','employeeId'])
         && data.keys().hasAll(['name','phone','email','address','postcode','city','type','service','serviceDetails','notes','clientSince','createdAt','updatedAt'])
         && data.name is string && data.name.size() > 0 && data.name.size() <= 100
         && data.phone is string && data.phone.size() >= 7 && data.phone.size() <= 40 && data.phone.matches('.*[0-9].*')
@@ -124,16 +124,16 @@ service cloud.firestore {
     }
     match /clients/{id} {
       allow read: if isAdmin();
-      allow create: if isAdmin() && validId(id) && validClient(request.resource.data)
+      allow create: if isAdmin() && validId(id) && validClient(request.resource.data) && activeEmployee(request.resource.data.get('employeeId',''))
         && request.resource.data.createdAt == request.time;
-      allow update: if isAdmin() && validId(id) && validClient(request.resource.data)
+      allow update: if isAdmin() && validId(id) && validClient(request.resource.data) && changedEmployeeAllowed(request.resource.data,resource.data)
         && ('createdAt' in resource.data
           ? request.resource.data.createdAt == resource.data.createdAt
           : request.resource.data.createdAt == request.time);
       allow delete: if isAdmin();
     }
     function validService(data) {
-      return data.keys().hasOnly(['clientId','title','serviceType','frequency','startDate','estimatedDuration','areas','notes','createdAt','updatedAt','endDate','status'])
+      return employeeReference(data) && data.keys().hasOnly(['clientId','title','serviceType','frequency','startDate','estimatedDuration','areas','notes','createdAt','updatedAt','endDate','status','employeeId'])
         && data.keys().hasAll(['clientId','title','serviceType','frequency','startDate','estimatedDuration','areas','notes','createdAt','updatedAt'])
         && data.clientId is string && validId(data.clientId)
         && existsAfter(/databases/$(database)/documents/clients/$(data.clientId))
@@ -151,9 +151,9 @@ service cloud.firestore {
     }
     match /services/{id} {
       allow read: if isAdmin();
-      allow create: if isAdmin() && validId(id) && validService(request.resource.data)
+      allow create: if isAdmin() && validId(id) && validService(request.resource.data) && activeEmployee(request.resource.data.get('employeeId',''))
         && request.resource.data.createdAt == request.time;
-      allow update: if isAdmin() && validService(request.resource.data)
+      allow update: if isAdmin() && validService(request.resource.data) && changedEmployeeAllowed(request.resource.data,resource.data)
         && request.resource.data.clientId == resource.data.clientId
         && request.resource.data.createdAt == resource.data.createdAt;
       allow delete: if isAdmin() && resource.data.status == 'cancelado';
@@ -275,6 +275,55 @@ service cloud.firestore {
         && request.resource.data.clientAt == request.time && request.resource.data.updatedAt == request.time
       );
     }
+
+    function employeeReference(d) {
+      let id = d.get('employeeId','');
+      return id is string && (id == '' || (validId(id) && exists(/databases/$(database)/documents/employees/$(id))));
+    }
+    function activeEmployee(id) {
+      return id == '' || get(/databases/$(database)/documents/employees/$(id)).data.status == 'ativo';
+    }
+    function changedEmployeeAllowed(next, previous) {
+      return next.get('employeeId','') == previous.get('employeeId','') || activeEmployee(next.get('employeeId',''));
+    }
+    function employeeRoleLevel(role) {
+      return role == 'CEO / Gerente' ? 0 :
+        (role in ['Gestor de operações','Supervisor','Encarregado','Responsável de qualidade','Responsável de segurança'] ? 1 :
+        (role in ['Administrativo','Comercial','Atendimento ao cliente','Responsável de armazém','Manutenção','Motorista'] ? 2 : 3));
+    }
+    function validEmployee(d,id) {
+      return d.keys().hasOnly(['name','phone','email','address','postcode','city','taxId','birthDate','role','jobTitle','department','managerId','entryDate','contractType','contractEnd','exitDate','status','notes','photoData','createdAt','updatedAt'])
+        && d.keys().hasAll(['name','phone','email','address','postcode','city','taxId','birthDate','role','jobTitle','department','managerId','entryDate','contractType','contractEnd','exitDate','status','notes','photoData','createdAt','updatedAt'])
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 100
+        && d.phone is string && d.phone.size() <= 40 && d.email is string && d.email.size() <= 150
+        && d.address is string && d.address.size() <= 300
+        && d.postcode is string && (d.postcode == '' || d.postcode.matches('^[0-9]{4}-[0-9]{3}$'))
+        && d.city is string && d.city.size() <= 100
+        && d.taxId is string && (d.taxId == '' || d.taxId.matches('^[0-9]{9}$'))
+        && d.birthDate is string && (d.birthDate == '' || (validDay(d.birthDate) && d.birthDate <= d.entryDate))
+        && d.role in ['CEO / Gerente','Gestor de operações','Supervisor','Encarregado','Responsável de qualidade','Responsável de segurança','Administrativo','Comercial','Atendimento ao cliente','Responsável de armazém','Manutenção','Motorista','Técnico de limpeza','Auxiliar de limpeza','Limpeza industrial','Housekeeping','Outra função']
+        && d.jobTitle is string && d.jobTitle.size() <= 100 && d.department is string && d.department.size() <= 100
+        && d.managerId is string && (d.managerId == '' || (validId(d.managerId) && d.managerId != id
+          && employeeRoleLevel(get(/databases/$(database)/documents/employees/$(d.managerId)).data.role) < employeeRoleLevel(d.role)))
+        && d.entryDate is string && validDay(d.entryDate)
+        && d.contractType in ['Sem termo','A termo certo','A termo incerto','Prestação de serviços','Estágio','Gerência / administração','Não aplicável','Outro']
+        && d.contractEnd is string && (d.contractEnd == '' || (validDay(d.contractEnd) && d.contractEnd >= d.entryDate))
+        && d.exitDate is string && (d.exitDate == '' || (validDay(d.exitDate) && d.exitDate >= d.entryDate))
+        && d.status in ['ativo','inativo'] && (d.status == 'inativo' || d.exitDate == '')
+        && d.notes is string && d.notes.size() <= 5000
+        && d.photoData is string && d.photoData.size() <= 180000
+        && (d.photoData == '' || d.photoData.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$'))
+        && d.createdAt is timestamp && d.updatedAt == request.time;
+    }
+    match /employees/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && validId(id) && validEmployee(request.resource.data,id)
+        && request.resource.data.createdAt == request.time;
+      allow update: if isAdmin() && validId(id) && validEmployee(request.resource.data,id)
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false;
+    }
+
     // Tudo o que não foi autorizado explicitamente continua privado.
     match /{document=**} { allow read, write: if false; }
   }
