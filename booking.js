@@ -1,9 +1,10 @@
+import {liveSlots} from './shift-time.js?v=56';
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
 import {getAuth,signInAnonymously} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import {getFirestore,collection,doc,query,where,onSnapshot,runTransaction,serverTimestamp} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 import {firebaseConfig} from './admin/firebase-config.js';
 import {todayPortugal} from './admin/client-dates.js';
-import {createPublicBooking} from './public-booking.js';
+import {createPublicBooking} from './public-booking.js?v=56';
 import {setupPostcode} from './postcode-helper.js';
 const app=initializeApp(firebaseConfig,'geslimp-public');
 const db=getFirestore(app),auth=getAuth(app);
@@ -14,7 +15,7 @@ const shifts=['Manhã','Tarde','Noite'];
 const key=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const [year,month,day]=todayPortugal().split('-').map(Number);let view=new Date(year,month-1,1),selected=null,days={},stop=null,city='',saving=false,loaded=false,subscription=0;
 function status(message,error=false){$('bookingStatus').textContent=message;$('bookingStatus').className='booking-status'+(error?' error':'')}
-function slots(k){const d=days[k];return d&&!d.bookingId&&k>=todayPortugal()?(d.slots||[false,false,false]):[false,false,false]}
+function slots(k){const d=days[k];return d&&!d.bookingId&&k>=todayPortugal()?liveSlots(k,d.slots):[false,false,false]}
 function updatePersonalizadoRequirement(){clientNotes.required=serviceType.value==='Serviço personalizado';$('personalizadoRequiredHint').hidden=!clientNotes.required;updateBookingSubmitState()}
 function updateBookingSubmitState(){button.disabled=saving||!loaded||!selected||!timeSlot.value||![clientName,clientPhone,clientEmail,clientPostalCode,clientAddress,clientNotes].every(el=>el.checkValidity())||!clientName.value.trim()||!clientAddress.value.trim();}
 function populate(){const previous=timeSlot.value;timeSlot.replaceChildren(new Option(selected?'Selecione um período':'Selecione primeiro uma data',''));if(selected)shifts.forEach((shift,i)=>{if(slots(selected)[i])timeSlot.add(new Option(shift,shift))});if([...timeSlot.options].some(o=>o.value===previous))timeSlot.value=previous;timeSlot.disabled=!selected||!slots(selected).some(Boolean)}
@@ -26,3 +27,6 @@ setupPostcode({clientPostalCode,postcodeStatus:$('postcodeStatus'),addressSugges
 function closeSuccess(){$('bookingSuccessModal').classList.remove('show');document.body.style.overflow=''}$('bookingSuccessClose').onclick=closeSuccess;$('bookingSuccessModal').onclick=e=>{if(e.target===$('bookingSuccessModal'))closeSuccess()};document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSuccess()});
 form.onsubmit=async event=>{event.preventDefault();if(saving||!form.reportValidity()||!selected||!timeSlot.value)return;const digits=clientPhone.value.replace(/\D/g,'');if(digits.length<7||digits.length>15){status('Introduza um número de telefone válido.',true);clientPhone.focus();return}const input={name:clientName.value.trim(),phone:clientPhone.value.trim(),email:clientEmail.value.trim(),address:clientAddress.value.trim(),postcode:clientPostalCode.value.trim(),city,requestedService:serviceType.value,day:selected,shift:timeSlot.value,notes:clientNotes.value.trim()};saving=true;button.textContent='A ENVIAR…';updateBookingSubmitState();status('A enviar o pedido…');try{await auth.authStateReady();const user=auth.currentUser||(await signInAnonymously(auth)).user;await createPublicBooking({doc,collection,runTransaction,serverTimestamp},db,user.uid,input);form.reset();selected=null;city='';$('postcodeStatus').textContent='';$('addressSuggestions').replaceChildren();$('selectedDateLabel').textContent='Ainda não selecionada';populate();status('Pedido recebido. A marcação fica a aguardar confirmação.');$('bookingSuccessModal').classList.add('show');document.body.style.overflow='hidden'}catch(error){status(error.code?'Não foi possível enviar o pedido. Tente novamente ou contacte-nos.':error.message,true)}finally{saving=false;button.textContent='PEDIR AGENDAMENTO';updatePersonalizadoRequirement();render()}};
 updatePersonalizadoRequirement();populate();loadMonth();
+
+function refreshTimeSlots(){if(!loaded||saving)return;if(selected&&!slots(selected).some(Boolean)){selected=null;$('selectedDateLabel').textContent='Ainda não selecionada'}populate();render();}
+setInterval(refreshTimeSlots,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshTimeSlots()});

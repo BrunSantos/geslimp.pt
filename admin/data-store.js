@@ -1,3 +1,4 @@
+import {liveSlots,shiftExpired} from '../shift-time.js?v=56';
 import {mergeOpenings} from './agenda-data.js?v=49';
 import {serviceFromBooking} from './booking-service.js';
 import {validDate,todayPortugal} from './client-dates.js';
@@ -33,6 +34,7 @@ export function createDataStore(api, db) {
     async setDay(day, slots) {
       if (day < todayPortugal()) throw Error('Não é possível alterar a disponibilidade de dias passados.');
       if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || slots.length !== 3 || slots.some(s => typeof s !== 'boolean')) throw Error('Disponibilidade inválida.');
+      slots=liveSlots(day,slots);
       await runTransaction(db, async tx => {
         const ref = doc(db, 'availability', day);
         const snapshot = await tx.get(ref);
@@ -44,6 +46,7 @@ export function createDataStore(api, db) {
     },
     async createBooking(input) {
       if (!validDate(input.day) || input.day < todayPortugal()) throw Error('Não é possível criar marcações em datas passadas.');
+      const indices=input.shift==='Dia inteiro'?[0,1,2]:[shifts.indexOf(input.shift)];if(indices.some(i=>i<0||shiftExpired(input.day,i)))throw Error('O horário deste turno já passou. Escolhe outro turno ou outra data.');
       const ref = doc(collection(db, 'bookings'));
       const dayRef = doc(db, 'availability', input.day);
       await runTransaction(db, async tx => {
