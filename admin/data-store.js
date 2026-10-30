@@ -1,3 +1,4 @@
+import {mergeOpenings} from './agenda-data.js?v=49';
 import {serviceFromBooking} from './booking-service.js';
 import {validDate,todayPortugal} from './client-dates.js';
 // Operações atómicas: nunca substituímos toda a base de dados com uma cópia do navegador.
@@ -35,6 +36,9 @@ export function createDataStore(api, db) {
       await runTransaction(db, async tx => {
         const ref = doc(db, 'availability', day);
         const snapshot = await tx.get(ref);
+        const historyRef=doc(db,'availabilityHistory',day),history=await tx.get(historyRef);
+        const everOpened=mergeOpenings(history.data()?.slots,snapshot.data()?.slots,slots);
+        tx.set(historyRef,{slots:everOpened,createdAt:history.data()?.createdAt||serverTimestamp(),updatedAt:serverTimestamp()});
         tx.set(ref, { slots, bookingId: snapshot.exists() ? (snapshot.data().bookingId || '') : '', updatedAt: serverTimestamp() });
       });
     },
@@ -46,14 +50,14 @@ export function createDataStore(api, db) {
         const day = await tx.get(dayRef);
         const data = day.exists() ? day.data() : {};
         if (data.bookingId) throw Error('Este dia já tem uma marcação. Atualiza o calendário.');
-        if (!data.slots?.[shifts.indexOf(input.shift)]) throw Error('Este turno está fechado. Abre-o no calendário.');
-        tx.set(ref, { ...input, status: 'pendente', createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+        if (input.shift==='Dia inteiro'?!data.slots?.every(Boolean):!data.slots?.[shifts.indexOf(input.shift)]) throw Error('Este turno está fechado. Abre-o no calendário.');
+        tx.set(ref, { ...input, source:'admin', status: 'pendente', createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
         tx.update(dayRef, { bookingId: ref.id, updatedAt: serverTimestamp() });
       });
       return ref.id;
     },
     async changeStatus(id, status) {
-      if (!['confirmada', 'cancelada'].includes(status)) throw Error('Estado inválido.');
+      if (!['confirmada', 'cancelada','concluida'].includes(status)) throw Error('Estado inválido.');
       const ref = doc(db, 'bookings', id);
       await runTransaction(db, async tx => {
         const booking = await tx.get(ref);
@@ -61,6 +65,8 @@ export function createDataStore(api, db) {
         const data = booking.data();
         const dayRef = doc(db, 'availability', data.day);
         const day = await tx.get(dayRef);
+        if(status==='concluida'&&(data.status!=='confirmada'||data.day>todayPortugal()))throw Error('Só podes concluir uma marcação confirmada de hoje ou de um dia anterior.');
+        if(data.status==='concluida')throw Error('A marcação já foi concluída.');
         if (data.status === 'cancelada') throw Error('Esta marcação já foi cancelada.');
         if (day.data()?.bookingId !== id) throw Error('O calendário foi alterado. Atualiza a página antes de continuar.');
         tx.update(ref, { status, updatedAt: serverTimestamp() });

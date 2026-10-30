@@ -20,16 +20,16 @@ service cloud.firestore {
     }
     function matchingBookingAfter(id, day) {
       let booking = getAfter(/databases/$(database)/documents/bookings/$(id)).data;
-      return booking.day == day && booking.status in ['pendente','confirmada'];
+      return booking.day == day && booking.status in ['pendente','confirmada','concluida'];
     }
     function validBooking(data, id) {
       return data.keys().hasOnly(['name','day','shift','notes','status','createdAt','updatedAt','clientId','phone','email','address','postcode','city','requestedService','source','ownerUid'])
         && data.keys().hasAll(['name','day','shift','notes','status','createdAt','updatedAt'])
         && data.name is string && data.name.size() > 0 && data.name.size() <= 100
         && data.day is string && validDay(data.day)
-        && data.shift in ['Manhã','Tarde','Noite']
+        && data.shift in ['Manhã','Tarde','Noite','Dia inteiro']
         && data.notes is string && data.notes.size() <= 5000
-        && data.status in ['pendente','confirmada','cancelada']
+        && data.status in ['pendente','confirmada','cancelada','concluida']
         && data.createdAt is timestamp && data.updatedAt == request.time
         && (!('clientId' in data) || (data.clientId is string && validId(data.clientId)
           && existsAfter(/databases/$(database)/documents/clients/$(data.clientId))));
@@ -90,13 +90,43 @@ service cloud.firestore {
       allow get: if request.auth != null && request.auth.uid == uid;
       allow list, create, update, delete: if false;
     }
+
+    function openingHistoryUpdated(day) {
+      let h = getAfter(/databases/$(database)/documents/availabilityHistory/$(day)).data;
+      return h.updatedAt == request.time
+        && (!request.resource.data.slots[0] || h.slots[0])
+        && (!request.resource.data.slots[1] || h.slots[1])
+        && (!request.resource.data.slots[2] || h.slots[2]);
+    }
+    function historySlots(day, previous) {
+      let before = exists(/databases/$(database)/documents/availability/$(day))
+        ? get(/databases/$(database)/documents/availability/$(day)).data.slots : [false,false,false];
+      let after = getAfter(/databases/$(database)/documents/availability/$(day)).data;
+      return after.updatedAt == request.time
+        && request.resource.data.slots[0] == (previous[0] || before[0] || after.slots[0])
+        && request.resource.data.slots[1] == (previous[1] || before[1] || after.slots[1])
+        && request.resource.data.slots[2] == (previous[2] || before[2] || after.slots[2]);
+    }
+    match /availabilityHistory/{day} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && validDay(day)
+        && request.resource.data.keys().hasOnly(['slots','createdAt','updatedAt']) && validSlots(request.resource.data.slots)
+        && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time
+        && historySlots(day,[false,false,false]);
+      allow update: if isAdmin() && validDay(day)
+        && request.resource.data.keys().hasOnly(['slots','createdAt','updatedAt']) && validSlots(request.resource.data.slots)
+        && request.resource.data.createdAt == resource.data.createdAt && request.resource.data.updatedAt == request.time
+        && historySlots(day,resource.data.slots);
+      allow delete: if false;
+    }
+
     match /availability/{day} {
       // Estes documentos contêm apenas turnos, ocupação e data de atualização.
       allow read: if true;
       allow create: if isAdmin() && validDay(day) && validAvailability(request.resource.data)
-        && request.resource.data.bookingId == '';
+        && request.resource.data.bookingId == '' && openingHistoryUpdated(day);
       allow update: if validDay(day) && validAvailability(request.resource.data)
-        && ((isAdmin() && (request.resource.data.bookingId == resource.data.bookingId
+        && ((isAdmin() && (request.resource.data.slots == resource.data.slots || openingHistoryUpdated(day)) && (request.resource.data.bookingId == resource.data.bookingId
           || (resource.data.bookingId == '' && validId(request.resource.data.bookingId)
               && matchingBookingAfter(request.resource.data.bookingId, day))
           || (request.resource.data.bookingId == ''
@@ -115,7 +145,7 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','clientId','updatedAt'])
         && (request.resource.data.status == resource.data.status
           || (resource.data.status == 'pendente' && request.resource.data.status in ['confirmada','cancelada'])
-          || (resource.data.status == 'confirmada' && request.resource.data.status == 'cancelada'))
+          || (resource.data.status == 'confirmada' && request.resource.data.status in ['cancelada','concluida']))
         && (request.resource.data.status == 'cancelada'
           ? getAfter(/databases/$(database)/documents/availability/$(resource.data.day)).data.bookingId != id
           : getAfter(/databases/$(database)/documents/availability/$(resource.data.day)).data.bookingId == id);
