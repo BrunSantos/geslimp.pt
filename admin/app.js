@@ -1,8 +1,9 @@
+import {initReportReset} from './report-reset.js?v=57';
 import {liveSlots,shiftExpired} from '../shift-time.js?v=56';
-import {initAgendaReport} from './agenda-report.js?v=49';
+import {initAgendaReport} from './agenda-report.js?v=57';
 import {bookingSlots} from './agenda-data.js?v=49';
 import {resetAdminNavigation} from './navigation-start.js?v=48';
-import {initStock} from './stock.js?v=53';
+import {initStock} from './stock.js?v=57';
 import {initTeam} from './team.js?v=52';
 import {initQuotes} from './quotes.js?v=44';
 import {todayPortugal, validDate, isPremium} from './client-dates.js';
@@ -336,6 +337,7 @@ initQuotes({auth,db,getState:()=>state,ready:()=>adminReady,store,openClient,pag
 initTeam({auth,db,getState:()=>state,ready:()=>adminReady,notice});
 adjustMobileDialogs();
 
+initReportReset({auth,db,ready:()=>adminReady,notice});
 initStock({auth,db,getState:()=>state,ready:()=>adminReady,notice});
 adjustMobileDialogs();
 

@@ -503,6 +503,15 @@ service cloud.firestore {
     }
 
     // Tudo o que não foi autorizado explicitamente continua privado.
+    match /reportSettings/counters {
+      allow read: if isAdmin();
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['resetAt','resetBy'])
+        && request.resource.data.keys().hasAll(['resetAt','resetBy'])
+        && request.resource.data.resetAt == request.time
+        && request.resource.data.resetBy == request.auth.uid;
+      allow delete: if false;
+    }
     match /{document=**} { allow read, write: if false; }
   }
 }
