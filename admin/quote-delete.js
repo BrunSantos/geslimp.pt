@@ -21,11 +21,26 @@ export async function deleteQuoteHistory(ctx,id){
  if(records.length>400)throw Error('Este histórico é demasiado extenso para apagar numa única operação.');
  if(family.some(q=>q.serviceId))throw Error('Não é possível apagar: este orçamento ou uma das suas revisões já deu origem a um serviço.');
  const message=`Apagar definitivamente o orçamento ${selected.number} e todo o seu histórico?\n\nSerão apagadas ${family.length} versão(ões), incluindo respostas e comentários. Os links partilhados deixarão de funcionar.\n\nEsta ação não pode ser anulada.`;
- if(!confirm(message))return false;
+ if(!await confirmQuoteDeletion(message))return false;
  await runTransaction(ctx.db,async tx=>{
   const freshCounter=await tx.get(counter);
   if(fingerprint(freshCounter)!==fingerprint(before))throw Error('Os orçamentos foram atualizados noutra sessão. Tenta apagar novamente.');
   for(const original of records){const fresh=await tx.get(original.ref);if(fingerprint(fresh)!==fingerprint(original))throw Error('O orçamento ou uma resposta foi alterado entretanto. Revê os dados e tenta novamente.');}
   for(const s of records)tx.delete(s.ref);
+ });
+}
+
+export function confirmQuoteDeletion(message){
+ return new Promise(resolve=>{
+  const dialog=document.createElement('dialog');
+  dialog.setAttribute('aria-labelledby','quote-delete-heading');
+  dialog.innerHTML='<h2 id="quote-delete-heading">Apagar orçamento e histórico</h2><p class="quote-delete-description" style="white-space:pre-line"></p><div class="actions"><button type="button" class="btn" data-cancel>Cancelar</button><button type="button" class="btn danger" data-confirm>Apagar definitivamente</button></div>';
+  dialog.querySelector('p').textContent=message;
+  let finished=false;
+  function finish(value){if(finished)return;finished=true;dialog.close();dialog.remove();resolve(value)}
+  dialog.querySelector('[data-cancel]').onclick=()=>finish(false);
+  dialog.querySelector('[data-confirm]').onclick=()=>finish(true);
+  dialog.addEventListener('cancel',event=>{event.preventDefault();finish(false)});
+  document.body.append(dialog);dialog.showModal();dialog.querySelector('[data-cancel]').focus();
  });
 }

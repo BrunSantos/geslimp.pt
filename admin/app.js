@@ -1,4 +1,4 @@
-import {initQuotes} from './quotes.js?v=41';
+import {initQuotes} from './quotes.js?v=42';
 import {todayPortugal, validDate, isPremium} from './client-dates.js';
 import { createMapLinks } from './map-links.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
