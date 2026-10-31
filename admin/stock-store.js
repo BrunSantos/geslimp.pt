@@ -1,4 +1,4 @@
-import {supplierSeeds,movementValues} from './stock-data.js?v=46';
+import {supplierSeeds,movementValues} from './stock-data.js?v=62';
 import {validDate,todayPortugal} from './client-dates.js';
 export function createStockStore(api,db){
  const {doc,runTransaction,serverTimestamp}=api;

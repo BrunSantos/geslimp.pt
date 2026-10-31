@@ -1,4 +1,4 @@
-import {recurrenceShifts,weekdayOf,occurs} from './recurrence.js?v=61';
+import {recurrenceShifts,weekdayOf,occurs} from './recurrence.js?v=62';
 export const shiftIndices=shift=>shift==='Dia inteiro'?[0,1,2]:[recurrenceShifts.indexOf(shift)].filter(i=>i>=0);
 export const crewOf=(record,client)=>Array.isArray(record.employeeIds)?record.employeeIds:(record.employeeId?[record.employeeId]:client?.employeeId?[client.employeeId]:[]);
 export const needed=record=>Math.max(1,record.workersNeeded||crewOf(record).length||1);
