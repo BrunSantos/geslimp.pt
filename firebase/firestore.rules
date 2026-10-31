@@ -147,9 +147,21 @@ service cloud.firestore {
         && booking.ownerUid == request.auth.uid && booking.source == 'site'
         && visitorCanBook(booking);
     }
+    match /employeeAdminLinks/{employeeId} {
+      allow read: if isAdmin();
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['uid','email','updatedAt'])
+        && request.resource.data.keys().hasAll(['uid','email','updatedAt'])
+        && request.resource.data.uid is string
+        && request.resource.data.email is string
+        && request.resource.data.updatedAt == request.time
+        && exists(/databases/$(database)/documents/employees/$(employeeId))
+        && get(/databases/$(database)/documents/admins/$(request.resource.data.uid)).data.enabled == true;
+      allow delete: if false;
+    }
     match /admins/{uid} {
       // Só a consola/Admin SDK atribui este papel. Nenhum visitante pode promover a sua conta.
-      allow get: if request.auth != null && request.auth.uid == uid;
+      allow get: if request.auth != null && (request.auth.uid == uid || isAdmin());
       allow list, create, update, delete: if false;
     }
 
