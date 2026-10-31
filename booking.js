@@ -1,12 +1,12 @@
-import {freeSeats} from './capacity.js?v=76';
-import {slotReserved} from './recurrence.js?v=76';
-import {liveSlots} from './shift-time.js?v=76';
+import {freeSeats} from './capacity.js?v=77';
+import {slotReserved} from './recurrence.js?v=77';
+import {liveSlots} from './shift-time.js?v=77';
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
 import {getAuth,signInAnonymously} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import {getFirestore,collection,doc,query,where,onSnapshot,runTransaction,serverTimestamp,arrayUnion} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 import {firebaseConfig} from './admin/firebase-config.js';
 import {todayPortugal} from './admin/client-dates.js';
-import {createPublicBooking} from './public-booking.js?v=76';
+import {createPublicBooking} from './public-booking.js?v=77';
 import {setupPostcode} from './postcode-helper.js';
 const app=initializeApp(firebaseConfig,'geslimp-public');
 const db=getFirestore(app),auth=getAuth(app);
