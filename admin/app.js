@@ -1,26 +1,26 @@
-import {initNotifications} from './notifications.js?v=72';
-import {initUnfinishedServices} from './unfinished-services-ui.js?v=72';
-import {createServiceOccurrences} from './service-occurrences.js?v=72';
-import {initServiceOccurrences} from './service-occurrences-ui.js?v=72';
-import {initCapacityUI} from './capacity-ui.js?v=72';
-import {freeSeats,crewOf,shiftIndices} from '../capacity.js?v=72';
-import {recurring,occurs,recurringVisits,weekNames} from '../recurrence.js?v=72';
-import {initEmployeeProjections} from './employee-projections.js?v=72';
-import {initReportReset} from './report-reset.js?v=72';
-import {liveSlots,shiftExpired} from '../shift-time.js?v=72';
-import {initAgendaReport} from './agenda-report.js?v=72';
-import {bookingSlots} from './agenda-data.js?v=72';
-import {resetAdminNavigation} from './navigation-start.js?v=72';
-import {initStock} from './stock.js?v=72';
-import {initTeam} from './team.js?v=72';
-import {initQuotes} from './quotes.js?v=72';
+import {initNotifications} from './notifications.js?v=73';
+import {initUnfinishedServices} from './unfinished-services-ui.js?v=73';
+import {createServiceOccurrences} from './service-occurrences.js?v=73';
+import {initServiceOccurrences} from './service-occurrences-ui.js?v=73';
+import {initCapacityUI} from './capacity-ui.js?v=73';
+import {freeSeats,crewOf,shiftIndices} from '../capacity.js?v=73';
+import {recurring,occurs,recurringVisits,weekNames} from '../recurrence.js?v=73';
+import {initEmployeeProjections} from './employee-projections.js?v=73';
+import {initReportReset} from './report-reset.js?v=73';
+import {liveSlots,shiftExpired} from '../shift-time.js?v=73';
+import {initAgendaReport} from './agenda-report.js?v=73';
+import {bookingSlots} from './agenda-data.js?v=73';
+import {resetAdminNavigation} from './navigation-start.js?v=73';
+import {initStock} from './stock.js?v=73';
+import {initTeam} from './team.js?v=73';
+import {initQuotes} from './quotes.js?v=73';
 import {todayPortugal, validDate, isPremium} from './client-dates.js';
 import { createMapLinks } from './map-links.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
 import { getAuth, setPersistence, browserSessionPersistence, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, reauthenticateWithCredential, EmailAuthProvider, updatePassword } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import { getFirestore, collection, doc, onSnapshot, getDocFromServer, getDocsFromServer, query, where, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 import { firebaseConfig } from './firebase-config.js';
-import { createDataStore } from './data-store.js?v=72';
+import { createDataStore } from './data-store.js?v=73';
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 auth.languageCode = 'pt';
@@ -209,34 +209,34 @@ function loadAdminData(user, token) {
     }
     render();
   }
-  function failure(error) {
+  function failure(error, source) {
     if (token !== generation) return;
     stopData();
-    authMessage(describeError(error));
+    authMessage(describeError(error)+" Leitura: "+source+". Conta: "+user.email+". UID: "+user.uid+". Projeto: "+db.app.options.projectId+".");
   }
   stops.push(onSnapshot(collection(db, 'availability'), {includeMetadataChanges:true}, snapshot => {
     if (token !== generation) return;
     state.days = {};state.dayData={}; dayLocks = {};
     snapshot.forEach(d => { state.dayData[d.id]=d.data();state.days[d.id] = d.data().slots || [false,false,false]; dayLocks[d.id] = d.data().bookingId || ''; });
     if (!snapshot.metadata.fromCache) ready('days');
-  }, failure));
-  for(const name of ['teamDays','employees','recurringSlots','serviceCompletions'])stops.push(onSnapshot(collection(db,name),{includeMetadataChanges:true},snapshot=>{if(token!==generation)return;const values=snapshot.docs.map(d=>({...d.data(),id:d.id,key:d.id}));if(name==='teamDays')state.teamDays=Object.fromEntries(values.map(d=>[d.id,d]));if(name==='serviceCompletions'){state.completions=values;renderServiceList();}if(name==='employees')state.employees=values;if(name==='recurringSlots')state.recurringGroups=values;if(!snapshot.metadata.fromCache)ready(name);},failure));
+  }, error=>failure(error,'availability')));
+  for(const name of ['teamDays','employees','recurringSlots','serviceCompletions'])stops.push(onSnapshot(collection(db,name),{includeMetadataChanges:true},snapshot=>{if(token!==generation)return;const values=snapshot.docs.map(d=>({...d.data(),id:d.id,key:d.id}));if(name==='teamDays')state.teamDays=Object.fromEntries(values.map(d=>[d.id,d]));if(name==='serviceCompletions'){state.completions=values;renderServiceList();}if(name==='employees')state.employees=values;if(name==='recurringSlots')state.recurringGroups=values;if(!snapshot.metadata.fromCache)ready(name);},error=>failure(error,name)));
   stops.push(onSnapshot(collection(db, 'bookings'), {includeMetadataChanges:true}, snapshot => {
     if (token !== generation) return;
     state.bookings = snapshot.docs.map(d => ({...d.data(), id:d.id})).sort((a,b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
     if (!snapshot.metadata.fromCache) ready('bookings');
-  }, failure));
+  }, error=>failure(error,'bookings')));
   stops.push(onSnapshot(collection(db, 'clients'), {includeMetadataChanges:true}, snapshot => {
     if (token !== generation) return;
     state.clients = snapshot.docs.map(d => ({...d.data(), id:d.id})).sort((a,b) => a.name.localeCompare(b.name,'pt'));
     if (!snapshot.metadata.fromCache) ready('clients');
-  }, failure));
+  }, error=>failure(error,'clients')));
   stops.push(onSnapshot(collection(db,'services'), {includeMetadataChanges:true}, snapshot=>{
     if(token!==generation)return;
     state.services=snapshot.docs.map(d=>({...d.data(),id:d.id}));
     if(!snapshot.metadata.fromCache)ready('services');
     renderServiceList();
-  },failure));
+  },error=>failure(error,'services')));
 }
 $('#login-form').onsubmit = async event => {
   event.preventDefault();
@@ -311,7 +311,7 @@ onAuthStateChanged(auth, user => {
     if (!stops.length) { authMessage('A carregar os dados…'); loadAdminData(user,token); }
   }, error => {
     if (token !== generation) return;
-    stopData(); authMessage(describeError(error));
+    stopData(); authMessage(describeError(error)+" Leitura: admins/"+user.uid+". Conta: "+user.email+". Projeto: "+db.app.options.projectId+".");
   });
 });
 
