@@ -737,6 +737,17 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
       allow delete: if false;
     }
+    match /adminNotificationPreferences/{uid} {
+      allow get: if isAdmin() && request.auth.uid == uid;
+      allow list: if false;
+      allow create, update: if isAdmin() && request.auth.uid == uid && request.resource.data.keys().hasOnly(['enabled','updatedAt'])
+        && request.resource.data.enabled is map && request.resource.data.enabled.keys().hasOnly(['stock','loans','services','monthly','bookings','quotes'])
+        && request.resource.data.enabled.get('stock',true) is bool && request.resource.data.enabled.get('loans',true) is bool
+        && request.resource.data.enabled.get('services',true) is bool && request.resource.data.enabled.get('monthly',true) is bool
+        && request.resource.data.enabled.get('bookings',true) is bool && request.resource.data.enabled.get('quotes',true) is bool
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
     match /serviceRates/{id} {
       allow read: if isAdmin();
       allow create, update: if isAdmin() && request.resource.data.keys().hasOnly(['serviceId','month','mode','amountCents','updatedAt'])
