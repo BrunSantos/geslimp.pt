@@ -8,3 +8,5 @@
 #stock-report-table .stock-table{min-width:0}
 
 .shopping-alert{margin-bottom:18px}.shopping-alert .btn{display:inline-flex;align-items:center;gap:10px}.shopping-warning{color:#854600;background:#fff5dc;border-color:#e6b75e}.shopping-row{display:flex;justify-content:space-between;align-items:center;gap:15px;border-top:1px solid #e1e9ed;padding:15px 0}.shopping-row p{margin:5px 0;line-height:1.6}#shopping [hidden]{display:none!important}#shopping-list .card{margin-top:18px}@media(max-width:600px){.shopping-row{align-items:flex-start;flex-direction:column}.shopping-alert .btn{white-space:normal;text-align:left}}
+
+.invoice-fields{min-width:0;margin:18px 0;padding:16px;border:1px solid #dce8ed;border-radius:14px}.invoice-fields legend{font-weight:700;padding:0 5px}.invoice-fields p{overflow-wrap:anywhere}#invoice-preview{overflow:hidden}#invoice-editor{width:min(720px,calc(100vw - 28px));max-height:88dvh;overflow:auto}#invoice-list{max-height:88dvh;overflow:auto}

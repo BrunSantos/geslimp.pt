@@ -1,8 +1,8 @@
-import {crewOf,needed,shiftIndices,groupEntries,weeklyUsed,reservationsFrom,overlaps,slotMap,slotArrays} from '../capacity.js?v=64';
-import {recurring,slotKey,occurs,weekdayOf,recurrenceShifts} from '../recurrence.js?v=64';
-import {liveSlots,shiftExpired} from '../shift-time.js?v=64';
+import {crewOf,needed,shiftIndices,groupEntries,weeklyUsed,reservationsFrom,overlaps,slotMap,slotArrays} from '../capacity.js?v=66';
+import {recurring,slotKey,occurs,weekdayOf,recurrenceShifts} from '../recurrence.js?v=66';
+import {liveSlots,shiftExpired} from '../shift-time.js?v=66';
 import {todayPortugal,validDate} from './client-dates.js';
-import {mergeOpenings} from './agenda-data.js?v=64';
+import {mergeOpenings} from './agenda-data.js?v=66';
 export function createCapacityStore(api,db,legacy){const {doc,collection,runTransaction,serverTimestamp,getDocsFromServer,getDocFromServer}=api;
  const readAll=async name=>(await getDocsFromServer(collection(db,name))).docs.map(d=>({...d.data(),id:d.id}));
  const lockRef=(day,i,emp)=>doc(db,'staffDaySlots',day+'-'+i+'-'+emp),weekRef=(day,i,emp)=>doc(db,'staffRecurring',weekdayOf(day)+'-'+i+'-'+emp);

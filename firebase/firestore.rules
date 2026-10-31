@@ -544,6 +544,35 @@ service cloud.firestore {
         && request.resource.data.remainingMilli == resource.data.remainingMilli - getAfter(/databases/$(database)/documents/stockMovements/$(request.resource.data.lastReturnId)).data.qtyMilli;
       allow delete: if false;
     }
+    function validStockInvoice(d,id) {
+      let purchase = getAfter(/databases/$(database)/documents/stockMovements/$(id)).data;
+      return d.keys().hasOnly(['itemId','invoiceNumber','warrantyEnd','fileName','mime','size','chunkCount','createdAt','updatedAt'])
+        && d.keys().hasAll(['itemId','invoiceNumber','warrantyEnd','fileName','mime','size','chunkCount','createdAt','updatedAt'])
+        && purchase.kind == 'purchase' && purchase.itemId == d.itemId
+        && d.invoiceNumber is string && d.invoiceNumber.size() <= 100
+        && d.warrantyEnd is string && (d.warrantyEnd == '' || validDay(d.warrantyEnd))
+        && d.fileName is string && d.fileName.size() <= 180
+        && d.mime in ['','application/pdf','image/jpeg','image/png']
+        && d.size is int && d.size >= 0 && d.size <= 2097152
+        && d.chunkCount is int && d.chunkCount >= 0 && d.chunkCount <= 7
+        && (d.chunkCount == 0 ? d.size == 0 && d.fileName == '' && d.mime == '' : d.size > 0 && d.fileName.size() > 0 && d.mime != '')
+        && d.updatedAt == request.time;
+    }
+    match /stockInvoices/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && validId(id) && validStockInvoice(request.resource.data,id) && request.resource.data.createdAt == request.time;
+      allow update: if isAdmin() && validStockInvoice(request.resource.data,id) && request.resource.data.createdAt == resource.data.createdAt && request.resource.data.itemId == resource.data.itemId;
+      allow delete: if false;
+      match /parts/{index} {
+        allow read: if isAdmin();
+        allow create, update: if isAdmin() && index in ['0','1','2','3','4','5','6']
+          && request.resource.data.keys().hasOnly(['data']) && request.resource.data.data is string
+          && request.resource.data.data.size() > 0 && request.resource.data.data.size() <= 450000
+          && request.resource.data.data.matches('^[A-Za-z0-9+/=]+$')
+          && getAfter(/databases/$(database)/documents/stockInvoices/$(id)).data.updatedAt == request.time;
+        allow delete: if isAdmin() && getAfter(/databases/$(database)/documents/stockInvoices/$(id)).data.updatedAt == request.time;
+      }
+    }
     match /stockSuppliers/{id} {
       allow read: if isAdmin();
       allow create: if isAdmin() && validId(id) && request.resource.data.keys().hasOnly(['name','createdAt'])
