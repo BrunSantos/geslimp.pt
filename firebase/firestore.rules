@@ -246,6 +246,24 @@ service cloud.firestore {
         && data.notes is string && data.notes.size() <= 5000
         && data.createdAt is timestamp && data.updatedAt == request.time;
     }
+    match /serviceCompletions/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && validId(id) && validServiceCompletion(request.resource.data,id);
+      allow update, delete: if false;
+    }
+    function validServiceCompletion(d,id) {
+      let s = get(/databases/$(database)/documents/services/$(d.serviceId)).data;
+      let parts = d.day.split('-');
+      return d.keys().hasOnly(['serviceId','clientId','day','shift','employeeIds','status','createdAt'])
+        && d.keys().hasAll(['serviceId','clientId','day','shift','employeeIds','status','createdAt'])
+        && validId(d.serviceId) && id == d.serviceId + '-' + d.day && validDay(d.day)
+        && s.frequency == 'Semanal' && s.get('status','ativo') != 'cancelado'
+        && s.clientId == d.clientId && s.shift == d.shift && weekOf(d.day) == s.weekday
+        && d.day >= s.startDate && (s.get('endDate','') == '' || d.day <= s.endDate)
+        && timestamp.date(int(parts[0]),int(parts[1]),int(parts[2])) <= request.time + duration.value(1,'h')
+        && d.employeeIds is list && d.employeeIds.size() <= 5
+        && d.status == 'concluida' && d.createdAt == request.time;
+    }
     match /services/{id} {
       allow read: if isAdmin();
       allow create: if isAdmin() && validId(id) && validService(request.resource.data) && serviceLock(id,request.resource.data) && activeEmployee(request.resource.data.get('employeeId',''))
@@ -582,19 +600,24 @@ service cloud.firestore {
     match /clientReceipts/{id} {
       allow read: if isAdmin();
       allow create: if isAdmin() && validId(id)
-        && request.resource.data.keys().hasOnly(['clientId','clientName','serviceId','amountCents','day','notes','status','cancelReason','createdAt','updatedAt'])
+        && request.resource.data.keys().hasOnly(['clientId','clientName','serviceId','amountCents','day','notes','status','cancelReason','createdAt','updatedAt','billingMonth'])
         && request.resource.data.clientId is string && validId(request.resource.data.clientId) && exists(/databases/$(database)/documents/clients/$(request.resource.data.clientId))
         && request.resource.data.serviceId is string && (request.resource.data.serviceId == '' || get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.clientId == request.resource.data.clientId)
         && request.resource.data.clientName == get(/databases/$(database)/documents/clients/$(request.resource.data.clientId)).data.name
         && request.resource.data.amountCents is int && request.resource.data.amountCents > 0 && request.resource.data.amountCents <= 100000000
         && request.resource.data.day is string && validDay(request.resource.data.day)
         && request.resource.data.notes is string && request.resource.data.notes.size() <= 3000
+        && (!('billingMonth' in request.resource.data) || (request.resource.data.serviceId != '' && validBillingMonth(request.resource.data.billingMonth)))
         && request.resource.data.status == 'received' && request.resource.data.cancelReason == ''
         && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time;
       allow update: if isAdmin() && resource.data.status == 'received'
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','cancelReason','updatedAt'])
         && request.resource.data.status == 'cancelled' && request.resource.data.cancelReason is string
         && request.resource.data.cancelReason.size() > 0 && request.resource.data.cancelReason.size() <= 1000 && request.resource.data.updatedAt == request.time;
+      allow update: if isAdmin() && resource.data.status == 'received' && resource.data.get('billingMonth','') == ''
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['billingMonth','updatedAt'])
+        && request.resource.data.serviceId != '' && validBillingMonth(request.resource.data.billingMonth)
+        && request.resource.data.updatedAt == request.time;
       allow delete: if false;
     }
 
@@ -681,6 +704,38 @@ service cloud.firestore {
         && request.resource.data.serviceIds is list && request.resource.data.serviceIds.size() == request.resource.data.entries.size()
         && request.resource.data.updatedAt == request.time;
       allow delete: if isAdmin();
+    }
+    function validBillingMonth(month) { return month is string && month.matches('^[0-9]{4}-(0[1-9]|1[0-2])$'); }
+    match /notificationSettings/admin {
+      allow read: if isAdmin();
+      allow create, update: if isAdmin() && request.resource.data.keys().hasOnly(['enabled','updatedAt'])
+        && request.resource.data.enabled is map && request.resource.data.enabled.keys().hasOnly(['stock','loans','services','monthly','bookings','quotes'])
+        && request.resource.data.enabled.get('stock',true) is bool && request.resource.data.enabled.get('loans',true) is bool
+        && request.resource.data.enabled.get('services',true) is bool && request.resource.data.enabled.get('monthly',true) is bool
+        && request.resource.data.enabled.get('bookings',true) is bool && request.resource.data.enabled.get('quotes',true) is bool
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
+    match /serviceRates/{id} {
+      allow read: if isAdmin();
+      allow create, update: if isAdmin() && request.resource.data.keys().hasOnly(['serviceId','month','mode','amountCents','updatedAt'])
+        && validId(request.resource.data.serviceId) && validBillingMonth(request.resource.data.month)
+        && id == request.resource.data.serviceId + '-' + request.resource.data.month
+        && exists(/databases/$(database)/documents/services/$(request.resource.data.serviceId))
+        && request.resource.data.mode in ['monthly','once']
+        && request.resource.data.amountCents is int && request.resource.data.amountCents > 0 && request.resource.data.amountCents <= 100000000
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
+    match /monthlyBilling/{id} {
+      allow read: if isAdmin();
+      allow create, update: if isAdmin() && request.resource.data.keys().hasOnly(['serviceId','month','paidCents','updatedAt'])
+        && validId(request.resource.data.serviceId) && validBillingMonth(request.resource.data.month)
+        && id == request.resource.data.serviceId + '-' + request.resource.data.month
+        && exists(/databases/$(database)/documents/services/$(request.resource.data.serviceId))
+        && request.resource.data.paidCents is int && request.resource.data.paidCents >= 0 && request.resource.data.paidCents <= 1000000000000
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
     }
     match /reportSettings/counters {
       allow read: if isAdmin();

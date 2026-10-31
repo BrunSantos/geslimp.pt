@@ -1,4 +1,4 @@
-import {crewOf} from '../capacity.js?v=66';
+import {crewOf} from '../capacity.js?v=68';
 import {doc,runTransaction,serverTimestamp} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 export const effectiveEmployeeId=(service,client)=>crewOf(service,client)[0]||'';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

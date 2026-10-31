@@ -10,3 +10,9 @@
 #weekly .week-today-column{background:#f2f7ff;box-shadow:inset 2px 0 #d2e5fb,inset -2px 0 #d2e5fb}
 
 #capacity-dialog{max-width:700px;width:calc(100% - 30px)}.capacity-person{display:flex;align-items:center;gap:9px;padding:8px 0}.capacity-person input{width:auto;flex:none}#capacity-fields fieldset,#service-crew{margin:12px 0}.capacity-person:has(input:disabled){opacity:.65}
+
+.shopping-alert{display:flex;gap:12px;flex-wrap:wrap;align-items:center}#unfinished-dialog{width:min(650px,calc(100vw - 28px));max-height:88dvh;overflow:auto}
+
+.notification-option{display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:1px solid #e5edf2;padding:16px 0}.notification-option input{width:24px;height:24px;flex:0 0 auto}#notifications .card{margin-bottom:20px}#billing-rate,#monthly-pay{width:min(600px,calc(100vw - 28px));max-height:88dvh;overflow:auto}
+
+.shopping-alert .btn[hidden]{display:none!important}

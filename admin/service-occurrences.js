@@ -1,0 +1,7 @@
+import {occurs,recurring} from '../recurrence.js?v=68';
+import {crewOf} from '../capacity.js?v=68';
+import {validDate,todayPortugal} from './client-dates.js';
+export function createServiceOccurrences(api,db,saveService){const {doc,runTransaction,serverTimestamp,getDocFromServer}=api;return {
+ async complete(serviceId,day){if(!validDate(day)||day>todayPortugal())throw Error('Só podes concluir serviços de hoje ou de datas anteriores.');const id=serviceId+'-'+day;await runTransaction(db,async tx=>{const ref=doc(db,'serviceCompletions',id),s=await tx.get(doc(db,'services',serviceId)),done=await tx.get(ref);if(!s.exists()||!recurring(s.data())||!occurs(s.data(),day))throw Error('Esta data não pertence à recorrência do serviço.');if(done.exists())throw Error('O serviço desta data já está concluído.');const client=await tx.get(doc(db,'clients',s.data().clientId));tx.set(ref,{serviceId,clientId:s.data().clientId,day,shift:s.data().shift,employeeIds:crewOf(s.data(),client.data()),status:'concluida',createdAt:serverTimestamp()});});return id;},
+ async end(serviceId,day){const s=await getDocFromServer(doc(db,'services',serviceId));if(!s.exists()||!recurring(s.data())||s.data().status==='cancelado')throw Error('Serviço recorrente não encontrado.');if(!validDate(day)||day<s.data().startDate)throw Error('Escolhe uma data igual ou posterior ao início do serviço.');await saveService({...s.data(),id:serviceId,endDate:day,status:day>todayPortugal()?'ativo':'concluido'});}
+};}
