@@ -20,3 +20,5 @@
 .shopping-alert:not(:has(button:not([hidden]))){display:none!important}
 
 #employee-access [hidden]{display:none!important}
+
+#signed-user{max-width:100%;white-space:normal;overflow-wrap:anywhere}#session-name-form{max-width:480px;margin:20px 0}#session-name-save{margin-top:12px}
