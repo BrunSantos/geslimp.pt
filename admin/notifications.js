@@ -1,8 +1,8 @@
 import * as api from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
-import {unfinishedServices} from './unfinished-services.js?v=73';
-import {monthlyDues} from './billing-data.js?v=73';
-import {createBillingStore} from './billing-store.js?v=73';
-import {money,cents} from './stock-data.js?v=73';
+import {unfinishedServices} from './unfinished-services.js?v=74';
+import {monthlyDues} from './billing-data.js?v=74';
+import {createBillingStore} from './billing-store.js?v=74';
+import {money,cents} from './stock-data.js?v=74';
 import {todayPortugal} from './client-dates.js';
 const types={stock:'Stock no mínimo ou esgotado',loans:'Equipamentos com devolução em atraso',services:'Serviços passados por concluir',monthly:'Mensalidades por receber',bookings:'Pedidos de agendamento pendentes',quotes:'Orçamentos a aguardar resposta da GesLimp'};
 let enabled={},settingsLoaded=false,rates=[];

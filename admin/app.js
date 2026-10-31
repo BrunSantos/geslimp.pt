@@ -1,26 +1,26 @@
-import {initNotifications} from './notifications.js?v=73';
-import {initUnfinishedServices} from './unfinished-services-ui.js?v=73';
-import {createServiceOccurrences} from './service-occurrences.js?v=73';
-import {initServiceOccurrences} from './service-occurrences-ui.js?v=73';
-import {initCapacityUI} from './capacity-ui.js?v=73';
-import {freeSeats,crewOf,shiftIndices} from '../capacity.js?v=73';
-import {recurring,occurs,recurringVisits,weekNames} from '../recurrence.js?v=73';
-import {initEmployeeProjections} from './employee-projections.js?v=73';
-import {initReportReset} from './report-reset.js?v=73';
-import {liveSlots,shiftExpired} from '../shift-time.js?v=73';
-import {initAgendaReport} from './agenda-report.js?v=73';
-import {bookingSlots} from './agenda-data.js?v=73';
-import {resetAdminNavigation} from './navigation-start.js?v=73';
-import {initStock} from './stock.js?v=73';
-import {initTeam} from './team.js?v=73';
-import {initQuotes} from './quotes.js?v=73';
+import {initNotifications} from './notifications.js?v=74';
+import {initUnfinishedServices} from './unfinished-services-ui.js?v=74';
+import {createServiceOccurrences} from './service-occurrences.js?v=74';
+import {initServiceOccurrences} from './service-occurrences-ui.js?v=74';
+import {initCapacityUI} from './capacity-ui.js?v=74';
+import {freeSeats,crewOf,shiftIndices} from '../capacity.js?v=74';
+import {recurring,occurs,recurringVisits,weekNames} from '../recurrence.js?v=74';
+import {initEmployeeProjections} from './employee-projections.js?v=74';
+import {initReportReset} from './report-reset.js?v=74';
+import {liveSlots,shiftExpired} from '../shift-time.js?v=74';
+import {initAgendaReport} from './agenda-report.js?v=74';
+import {bookingSlots} from './agenda-data.js?v=74';
+import {resetAdminNavigation} from './navigation-start.js?v=74';
+import {initStock} from './stock.js?v=74';
+import {initTeam} from './team.js?v=74';
+import {initQuotes} from './quotes.js?v=74';
 import {todayPortugal, validDate, isPremium} from './client-dates.js';
 import { createMapLinks } from './map-links.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
 import { getAuth, setPersistence, browserSessionPersistence, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, reauthenticateWithCredential, EmailAuthProvider, updatePassword } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import { getFirestore, collection, doc, onSnapshot, getDocFromServer, getDocsFromServer, query, where, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 import { firebaseConfig } from './firebase-config.js';
-import { createDataStore } from './data-store.js?v=73';
+import { createDataStore } from './data-store.js?v=74';
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 auth.languageCode = 'pt';
@@ -212,7 +212,7 @@ function loadAdminData(user, token) {
   function failure(error, source) {
     if (token !== generation) return;
     stopData();
-    authMessage(describeError(error)+" Leitura: "+source+". Conta: "+user.email+". UID: "+user.uid+". Projeto: "+db.app.options.projectId+".");
+    authMessage(describeError(error));
   }
   stops.push(onSnapshot(collection(db, 'availability'), {includeMetadataChanges:true}, snapshot => {
     if (token !== generation) return;
@@ -311,7 +311,7 @@ onAuthStateChanged(auth, user => {
     if (!stops.length) { authMessage('A carregar os dados…'); loadAdminData(user,token); }
   }, error => {
     if (token !== generation) return;
-    stopData(); authMessage(describeError(error)+" Leitura: admins/"+user.uid+". Conta: "+user.email+". Projeto: "+db.app.options.projectId+".");
+    stopData(); authMessage(describeError(error));
   });
 });
 
