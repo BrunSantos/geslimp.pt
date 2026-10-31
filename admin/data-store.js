@@ -1,4 +1,5 @@
-import {recurring,slotKey,slotReserved,occurs,weekdayOf} from '../recurrence.js?v=59';
+import {createCapacityStore} from './capacity-store.js?v=61';
+import {recurring,slotKey,slotReserved,occurs,weekdayOf} from '../recurrence.js?v=61';
 import {liveSlots,shiftExpired} from '../shift-time.js?v=56';
 import {mergeOpenings} from './agenda-data.js?v=49';
 import {serviceFromBooking} from './booking-service.js';
@@ -7,7 +8,7 @@ import {validDate,todayPortugal} from './client-dates.js';
 export function createDataStore(api, db) {
   const { doc, collection, runTransaction, serverTimestamp, getDocsFromServer, query, where } = api;
   const shifts = ['Manhã', 'Tarde', 'Noite'];
-  return {
+  const legacy = {
     async deleteClient(id) {
       const groups=await Promise.all(['services','bookings'].map(name=>getDocsFromServer(query(collection(db,name),where('clientId','==',id)))));
       const linked=groups.flatMap((snapshot,i)=>snapshot.docs.map(d=>({ref:doc(db,i===0?'services':'bookings',d.id),kind:i===0?'service':'booking'})));
@@ -127,4 +128,5 @@ export function createDataStore(api, db) {
       });
     }
   };
+  return {...legacy,...createCapacityStore(api,db,legacy)};
 }

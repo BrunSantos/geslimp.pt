@@ -1,4 +1,4 @@
-import {occurs,recurring,weekdayOf} from '../recurrence.js?v=59';
+import {occurs,recurring,weekdayOf} from '../recurrence.js?v=61';
 import {todayPortugal} from '../admin/client-dates.js';
 const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),demo=new URLSearchParams(location.search).has('demo');let entries=[],view=new Date(todayPortugal()+'T12:00:00'),selected=todayPortugal(),unsubscribe=null;view.setDate(1);
 const date=s=>s?s.split('-').reverse().join('/'):'—',qty=n=>new Intl.NumberFormat('pt-PT',{maximumFractionDigits:3}).format((n||0)/1000),key=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');

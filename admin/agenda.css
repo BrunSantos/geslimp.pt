@@ -8,3 +8,5 @@
 .day .today-label{margin-top:3px}
 #weekly .week-head.is-today{background:#e2efff;color:#07569e;box-shadow:inset 0 3px #0964b6}
 #weekly .week-today-column{background:#f2f7ff;box-shadow:inset 2px 0 #d2e5fb,inset -2px 0 #d2e5fb}
+
+#capacity-dialog{max-width:700px;width:calc(100% - 30px)}.capacity-person{display:flex;align-items:center;gap:9px;padding:8px 0}.capacity-person input{width:auto;flex:none}#capacity-fields fieldset,#service-crew{margin:12px 0}.capacity-person:has(input:disabled){opacity:.65}

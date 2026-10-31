@@ -1,4 +1,4 @@
-import {recurringVisits} from '../recurrence.js?v=59';
+import {recurringVisits} from '../recurrence.js?v=61';
 import {reportAgenda} from './report-reset.js?v=59';
 import {collection,onSnapshot} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 import {agendaReport,agendaShifts} from './agenda-data.js?v=49';
