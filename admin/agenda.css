@@ -16,3 +16,5 @@
 .notification-option{display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:1px solid #e5edf2;padding:16px 0}.notification-option input{width:24px;height:24px;flex:0 0 auto}#notifications .card{margin-bottom:20px}#billing-rate,#monthly-pay{width:min(600px,calc(100vw - 28px));max-height:88dvh;overflow:auto}
 
 .shopping-alert .btn[hidden]{display:none!important}
+
+.shopping-alert:not(:has(button:not([hidden]))){display:none!important}
