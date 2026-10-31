@@ -14,7 +14,8 @@ export function validateEmployee(d,id,employees){
  if(d.status==='ativo'&&d.exitDate)throw Error('Retira a data de saída ou marca o colaborador como inativo.');
  if(d.taxId&&!/^\d{9}$/.test(d.taxId))throw Error('O NIF deve ter 9 algarismos.');
  if(d.postcode&&!/^\d{4}-\d{3}$/.test(d.postcode))throw Error('O código postal deve ter o formato 0000-000.');
- if(d.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email))throw Error('Verifica o email.');
+ if(!d.phone||d.phone.replace(/\D/g,'').length<7||d.phone.replace(/\D/g,'').length>15)throw Error('Preenche um telemóvel válido.');
+ if(!d.email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email))throw Error('Verifica o email.');
  if(d.managerId){const m=employees.find(e=>e.id===d.managerId);if(!m||m.id===id||levelOf(m.role)>=levelOf(d.role))throw Error('Escolhe um responsável de um nível hierárquico superior.');}
  if(!photoValid(d.photoData))throw Error('Seleciona novamente a fotografia.');
 }

@@ -1,21 +1,23 @@
+import {slotReserved} from './recurrence.js?v=59';
 import {liveSlots} from './shift-time.js?v=56';
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
 import {getAuth,signInAnonymously} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import {getFirestore,collection,doc,query,where,onSnapshot,runTransaction,serverTimestamp} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 import {firebaseConfig} from './admin/firebase-config.js';
 import {todayPortugal} from './admin/client-dates.js';
-import {createPublicBooking} from './public-booking.js?v=56';
+import {createPublicBooking} from './public-booking.js?v=59';
 import {setupPostcode} from './postcode-helper.js';
 const app=initializeApp(firebaseConfig,'geslimp-public');
 const db=getFirestore(app),auth=getAuth(app);
 const $=id=>document.getElementById(id);
 const grid=$('calendarGrid'),timeSlot=$('timeSlot'),form=$('bookingForm'),button=$('bookingSubmit');
 const serviceType=$('serviceType'),clientName=$('clientName'),clientPhone=$('clientPhone'),clientEmail=$('clientEmail'),clientPostalCode=$('clientPostalCode'),clientAddress=$('clientAddress'),clientNotes=$('clientNotes');
+let recurringLocks=[],recurringLoaded=false;
 const shifts=['Manhã','Tarde','Noite'];
 const key=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const [year,month,day]=todayPortugal().split('-').map(Number);let view=new Date(year,month-1,1),selected=null,days={},stop=null,city='',saving=false,loaded=false,subscription=0;
 function status(message,error=false){$('bookingStatus').textContent=message;$('bookingStatus').className='booking-status'+(error?' error':'')}
-function slots(k){const d=days[k];return d&&!d.bookingId&&k>=todayPortugal()?liveSlots(k,d.slots):[false,false,false]}
+function slots(k){if(!recurringLoaded)return [false,false,false];const d=days[k];return d&&!d.bookingId&&k>=todayPortugal()?liveSlots(k,d.slots).map((open,i)=>open&&!slotReserved(recurringLocks,k,i)):[false,false,false]}
 function updatePersonalizadoRequirement(){clientNotes.required=serviceType.value==='Serviço personalizado';$('personalizadoRequiredHint').hidden=!clientNotes.required;updateBookingSubmitState()}
 function updateBookingSubmitState(){button.disabled=saving||!loaded||!selected||!timeSlot.value||![clientName,clientPhone,clientEmail,clientPostalCode,clientAddress,clientNotes].every(el=>el.checkValidity())||!clientName.value.trim()||!clientAddress.value.trim();}
 function populate(){const previous=timeSlot.value;timeSlot.replaceChildren(new Option(selected?'Selecione um período':'Selecione primeiro uma data',''));if(selected)shifts.forEach((shift,i)=>{if(slots(selected)[i])timeSlot.add(new Option(shift,shift))});if([...timeSlot.options].some(o=>o.value===previous))timeSlot.value=previous;timeSlot.disabled=!selected||!slots(selected).some(Boolean)}
@@ -30,3 +32,5 @@ updatePersonalizadoRequirement();populate();loadMonth();
 
 function refreshTimeSlots(){if(!loaded||saving)return;if(selected&&!slots(selected).some(Boolean)){selected=null;$('selectedDateLabel').textContent='Ainda não selecionada'}populate();render();}
 setInterval(refreshTimeSlots,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshTimeSlots()});
+
+onSnapshot(collection(db,'recurringSlots'),snapshot=>{recurringLocks=snapshot.docs.map(d=>d.data());recurringLoaded=true;refreshTimeSlots();},()=>{recurringLoaded=false;populate();render();status('Não foi possível consultar os turnos. Tente novamente mais tarde.',true);});

@@ -2,3 +2,5 @@
 @media(max-width:850px){#team-editor,#team-profile{width:100%;max-width:none;max-height:none;height:var(--visible-height,100dvh)}.team-filters{grid-template-columns:1fr 1fr}.team-filters label:first-child{grid-column:1/-1}.team-heading .btn{min-height:46px}#team-editor .actions{position:static;padding-bottom:24px}.team-grid{grid-template-columns:1fr}.team-list{grid-template-columns:1fr}.team-profile-values{grid-template-columns:1fr}.team-profile-values .full{grid-column:auto}}
 
 .team-assign-button{max-width:100%;white-space:normal;text-align:left;overflow-wrap:anywhere}#team-assignment{width:min(560px,94vw);max-height:90dvh;overflow-y:auto}@media(max-width:850px){#team-assignment{width:100%;max-width:none;max-height:none;height:var(--visible-height,100dvh)}}
+
+#employee-access [hidden]{display:none!important}#employee-access{max-width:650px;width:calc(100% - 30px)}

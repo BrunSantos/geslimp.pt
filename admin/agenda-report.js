@@ -1,4 +1,5 @@
-import {reportAgenda} from './report-reset.js?v=57';
+import {recurringVisits} from '../recurrence.js?v=59';
+import {reportAgenda} from './report-reset.js?v=59';
 import {collection,onSnapshot} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 import {agendaReport,agendaShifts} from './agenda-data.js?v=49';
 import {todayPortugal} from './client-dates.js';
@@ -9,7 +10,7 @@ export function initAgendaReport(ctx){const $=s=>document.querySelector(s);let h
  $('#agenda-from').value=todayPortugal().slice(0,7)+'-01';$('#agenda-to').value=todayPortugal();
  function chart(rows){return rows.map(r=>`<div class="agenda-chart-row"><span>${esc(r.name)}</span><div class="agenda-chart-track"><span style="width:${Math.min(100,r.rate)}%"></span></div><strong>${percent(r.rate)}</strong><small>${r.occupied} ocupados / ${r.opened} abertos</small></div>`).join('')}
  function comparison(rows){return '<div class="agenda-table-scroll"><table class="agenda-table"><thead><tr><th>Dia / turno</th><th>Turnos abertos</th><th>Turnos escolhidos</th><th>Turnos ocupados</th><th>Turnos realizados</th><th>Ocupação</th></tr></thead><tbody>'+rows.map(r=>`<tr><td>${esc(r.name)}</td><td>${r.opened}</td><td>${r.requested}</td><td>${r.occupied}</td><td>${r.realized}</td><td>${percent(r.rate)}</td></tr>`).join('')+'</tbody></table></div>'}
- function render(){const from=$('#agenda-from').value,to=$('#agenda-to').value;if(from&&to&&from>to){$('#agenda-message').textContent='A data final deve ser igual ou posterior à inicial.';return}const s=ctx.getState(),r=agendaReport({...reportAgenda(s,history),from,to});$('#agenda-message').textContent='';
+ function render(){const from=$('#agenda-from').value,to=$('#agenda-to').value;if(from&&to&&from>to){$('#agenda-message').textContent='A data final deve ser igual ou posterior à inicial.';return}const s=ctx.getState(),r=agendaReport({...reportAgenda({...s,bookings:[...s.bookings,...recurringVisits(s.services,s.clients,from||todayPortugal().slice(0,7)+'-01',to||todayPortugal())]},history),from,to});$('#agenda-message').textContent='';
  $('#agenda-opened-days').textContent=r.openedDays;$('#agenda-opened-slots').textContent=r.opened;$('#agenda-occupied-days').textContent=r.occupiedDays;$('#agenda-occupied-slots').textContent=r.occupied;$('#agenda-realized').textContent=r.realized;$('#agenda-rate').textContent=percent(r.rate);$('#agenda-sources').textContent=`Marcações confirmadas ou concluídas: ${r.site} do site · ${r.manual} manuais / anteriores. Dias inteiros: ${r.fullDays}.`;
  $('#agenda-weekday-chart').innerHTML=chart(r.weekday);$('#agenda-shift-chart').innerHTML=chart(r.shift);$('#agenda-weekday-table').innerHTML=comparison(r.weekday);$('#agenda-shift-table').innerHTML=comparison(r.shift);
  const best=rows=>{const max=Math.max(0,...rows.filter(x=>x.opened).map(x=>x.rate));return max?rows.filter(x=>x.opened&&Math.abs(x.rate-max)<.00001).map(x=>x.name+' ('+percent(x.rate)+')').join(', '):'Ainda sem ocupação confirmada.'};

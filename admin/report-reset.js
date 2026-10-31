@@ -1,7 +1,7 @@
 import {doc,onSnapshot,setDoc,serverTimestamp} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 let resetAt=0,loaded=false;
 export const timestampMillis=value=>value?.toMillis?.()??(value?.seconds?value.seconds*1000+(value.nanoseconds||0)/1e6:0);
-export function reportRecords(records){return !loaded?[]:!resetAt?records:records.filter(r=>timestampMillis(r.createdAt)>resetAt);}
+export function reportRecords(records){return !loaded?[]:!resetAt?records:records.filter(r=>timestampMillis(r.createdAt)>resetAt||(r.recurring&&r.day>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Lisbon',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(resetAt))));}
 export function reportAgenda(state,history){if(!loaded)return {days:{},history:{},bookings:[]};if(!resetAt)return {days:state.days,history,bookings:state.bookings};const days={};for(const [day,h]of Object.entries(history))if(timestampMillis(h.updatedAt)>resetAt)days[day]=state.days[day]||[false,false,false];const freshHistory=Object.fromEntries(Object.entries(history).filter(([,h])=>timestampMillis(h.createdAt)>resetAt));return {days,history:freshHistory,bookings:reportRecords(state.bookings)};}
 export function initReportReset(ctx){
  const $=s=>document.querySelector(s);let stop,uid='',generation=0,busy=false;

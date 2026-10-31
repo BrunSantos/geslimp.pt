@@ -67,6 +67,23 @@ service cloud.firestore {
         && data.requestedService in ['Limpeza profunda','Limpeza pós-obra','Condomínio','Empresa','Serviço personalizado']
         && (data.requestedService != 'Serviço personalizado' || data.notes.size() > 0);
     }
+    function weekOf(day) { let p = day.split('-'); return timestamp.date(int(p[0]),int(p[1]),int(p[2])).dayOfWeek(); }
+    function recurringFree(day,index) {
+      let key = string(weekOf(day)) + '-' + string(index);
+      return !exists(/databases/$(database)/documents/recurringSlots/$(key))
+        || day < get(/databases/$(database)/documents/recurringSlots/$(key)).data.startDate
+        || (get(/databases/$(database)/documents/recurringSlots/$(key)).data.endDate != '' && day > get(/databases/$(database)/documents/recurringSlots/$(key)).data.endDate);
+    }
+    function freeBooking(d) {
+      return d.shift == 'Manhã' ? recurringFree(d.day,0) : d.shift == 'Tarde' ? recurringFree(d.day,1)
+        : d.shift == 'Noite' ? recurringFree(d.day,2) : recurringFree(d.day,0) && recurringFree(d.day,1) && recurringFree(d.day,2);
+    }
+    function freeOpening(day,slots) { return (!slots[0] || recurringFree(day,0)) && (!slots[1] || recurringFree(day,1)) && (!slots[2] || recurringFree(day,2)); }
+    function serviceSlot(d) { return string(d.weekday) + '-' + string(d.shift == 'Manhã' ? 0 : d.shift == 'Tarde' ? 1 : 2); }
+    function serviceLock(id,d) {
+      return d.frequency != 'Semanal' || d.get('status','ativo') != 'ativo'
+        || getAfter(/databases/$(database)/documents/recurringSlots/$(serviceSlot(d))).data.serviceId == id;
+    }
     function visitorCanBook(data) {
       let day = get(/databases/$(database)/documents/availability/$(data.day)).data;
       return validPublicBooking(data) && day.bookingId == ''
@@ -124,9 +141,9 @@ service cloud.firestore {
       // Estes documentos contêm apenas turnos, ocupação e data de atualização.
       allow read: if true;
       allow create: if isAdmin() && validDay(day) && validAvailability(request.resource.data)
-        && request.resource.data.bookingId == '' && openingHistoryUpdated(day);
+        && request.resource.data.bookingId == '' && openingHistoryUpdated(day) && freeOpening(day,request.resource.data.slots);
       allow update: if validDay(day) && validAvailability(request.resource.data)
-        && ((isAdmin() && (request.resource.data.slots == resource.data.slots || openingHistoryUpdated(day)) && (request.resource.data.bookingId == resource.data.bookingId
+        && ((isAdmin() && (request.resource.data.slots == resource.data.slots || (openingHistoryUpdated(day) && freeOpening(day,request.resource.data.slots))) && (request.resource.data.bookingId == resource.data.bookingId
           || (resource.data.bookingId == '' && validId(request.resource.data.bookingId)
               && matchingBookingAfter(request.resource.data.bookingId, day))
           || (request.resource.data.bookingId == ''
@@ -137,7 +154,7 @@ service cloud.firestore {
     match /bookings/{id} {
       allow read: if isAdmin();
       allow create: if validId(id) && validBooking(request.resource.data,id)
-        && (isAdmin() || visitorCanBook(request.resource.data))
+        && freeBooking(request.resource.data) && (isAdmin() || visitorCanBook(request.resource.data))
         && request.resource.data.status == 'pendente'
         && request.resource.data.createdAt == request.time
         && getAfter(/databases/$(database)/documents/availability/$(request.resource.data.day)).data.bookingId == id;
@@ -163,12 +180,13 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
     function validService(data) {
-      return employeeReference(data) && data.keys().hasOnly(['clientId','title','serviceType','frequency','startDate','estimatedDuration','areas','notes','createdAt','updatedAt','endDate','status','employeeId'])
+      return employeeReference(data) && data.keys().hasOnly(['clientId','title','serviceType','frequency','startDate','estimatedDuration','areas','notes','createdAt','updatedAt','endDate','status','employeeId','weekday','shift'])
         && data.keys().hasAll(['clientId','title','serviceType','frequency','startDate','estimatedDuration','areas','notes','createdAt','updatedAt'])
         && data.clientId is string && validId(data.clientId)
         && existsAfter(/databases/$(database)/documents/clients/$(data.clientId))
         && data.title is string && data.title.size() > 0 && data.title.size() <= 150
         && data.serviceType in ['Casa completa','Divisões específicas da casa','Condomínio','Escritório','Espaço comercial','Limpeza pós-obra','Outra limpeza']
+        && (data.frequency != 'Semanal' || data.get('status','ativo') != 'ativo' || (data.weekday is int && data.weekday >= 1 && data.weekday <= 7 && data.shift in ['Manhã','Tarde','Noite']))
         && data.frequency in ['Pontual','Diário','Semanal','Quinzenal','Mensal','Outro']
         && data.startDate is string && validDay(data.startDate)
         && (!('status' in data) || data.status in ['ativo','concluido','cancelado'])
@@ -181,9 +199,9 @@ service cloud.firestore {
     }
     match /services/{id} {
       allow read: if isAdmin();
-      allow create: if isAdmin() && validId(id) && validService(request.resource.data) && activeEmployee(request.resource.data.get('employeeId',''))
+      allow create: if isAdmin() && validId(id) && validService(request.resource.data) && serviceLock(id,request.resource.data) && activeEmployee(request.resource.data.get('employeeId',''))
         && request.resource.data.createdAt == request.time;
-      allow update: if isAdmin() && validService(request.resource.data) && changedEmployeeAllowed(request.resource.data,resource.data)
+      allow update: if isAdmin() && validService(request.resource.data) && serviceLock(id,request.resource.data) && changedEmployeeAllowed(request.resource.data,resource.data)
         && request.resource.data.clientId == resource.data.clientId
         && request.resource.data.createdAt == resource.data.createdAt;
       allow delete: if isAdmin() && resource.data.status == 'cancelado';
@@ -325,7 +343,7 @@ service cloud.firestore {
       return d.keys().hasOnly(['name','phone','email','address','postcode','city','taxId','birthDate','role','jobTitle','department','managerId','entryDate','contractType','contractEnd','exitDate','status','notes','photoData','createdAt','updatedAt'])
         && d.keys().hasAll(['name','phone','email','address','postcode','city','taxId','birthDate','role','jobTitle','department','managerId','entryDate','contractType','contractEnd','exitDate','status','notes','photoData','createdAt','updatedAt'])
         && d.name is string && d.name.size() > 0 && d.name.size() <= 100
-        && d.phone is string && d.phone.size() <= 40 && d.email is string && d.email.size() <= 150
+        && d.phone is string && d.phone.size() >= 7 && d.phone.size() <= 40 && d.phone.matches('^[+0-9 ()-]+$') && d.email is string && d.email.size() <= 150 && d.email.matches('^[^ @]+@[^ @]+[.][^ @]+$')
         && d.address is string && d.address.size() <= 300
         && d.postcode is string && (d.postcode == '' || d.postcode.matches('^[0-9]{4}-[0-9]{3}$'))
         && d.city is string && d.city.size() <= 100
@@ -503,6 +521,86 @@ service cloud.firestore {
     }
 
     // Tudo o que não foi autorizado explicitamente continua privado.
+    function portalSelf(emp) {
+      let a = get(/databases/$(database)/documents/employeeAccess/$(request.auth.uid)).data;
+      return request.auth != null && a.enabled == true && a.employeeId == emp
+        && get(/databases/$(database)/documents/employees/$(emp)).data.status == 'ativo';
+    }
+    function assignedClient(id,emp) {
+      return get(/databases/$(database)/documents/clients/$(id)).data.get('employeeId','') == emp;
+    }
+    function portalEntryAllowed(d,emp) {
+      return d.employeeId == emp && (d.type == 'profile'
+        || (d.type == 'material' && get(/databases/$(database)/documents/stockMovements/$(d.sourceId)).data.employeeId == emp)
+        || (d.type == 'loan' && get(/databases/$(database)/documents/stockLoans/$(d.sourceId)).data.employeeId == emp)
+        || (d.type == 'booking' && get(/databases/$(database)/documents/bookings/$(d.sourceId)).data.status != 'cancelada' && assignedClient(d.clientId,emp))
+        || (d.type == 'service' && get(/databases/$(database)/documents/services/$(d.sourceId)).data.get('status','ativo') != 'cancelado'
+          && (get(/databases/$(database)/documents/services/$(d.sourceId)).data.get('employeeId','') == emp
+            || (get(/databases/$(database)/documents/services/$(d.sourceId)).data.get('employeeId','') == '' && assignedClient(d.clientId,emp)))));
+    }
+    function accessShape(d) {
+      return d.keys().hasOnly(['employeeId','uid','email','enabled','createdAt','updatedAt'])
+        && d.keys().hasAll(['employeeId','uid','email','enabled','createdAt','updatedAt'])
+        && d.employeeId is string && validId(d.employeeId) && d.uid is string && validId(d.uid)
+        && d.email is string && d.email.size() > 3 && d.email.size() <= 150 && d.enabled is bool
+        && d.createdAt is timestamp && d.updatedAt == request.time;
+    }
+    match /employeeAccess/{uid} {
+      allow get: if isAdmin() || (request.auth != null && request.auth.uid == uid);
+      allow list: if isAdmin();
+      allow create: if isAdmin() && accessShape(request.resource.data) && request.resource.data.uid == uid
+        && request.resource.data.createdAt == request.time
+        && !exists(/databases/$(database)/documents/employeeAccounts/$(request.resource.data.employeeId))
+        && getAfter(/databases/$(database)/documents/employeeAccounts/$(request.resource.data.employeeId)).data.uid == uid;
+      allow update: if isAdmin() && accessShape(request.resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['enabled','updatedAt'])
+        && getAfter(/databases/$(database)/documents/employeeAccounts/$(resource.data.employeeId)).data.enabled == request.resource.data.enabled;
+      allow delete: if false;
+    }
+    match /employeeAccounts/{emp} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && accessShape(request.resource.data) && request.resource.data.employeeId == emp
+        && get(/databases/$(database)/documents/employees/$(emp)).data.status == 'ativo'
+        && request.resource.data.createdAt == request.time
+        && getAfter(/databases/$(database)/documents/employeeAccess/$(request.resource.data.uid)).data.employeeId == emp;
+      allow update: if isAdmin() && accessShape(request.resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['enabled','updatedAt'])
+        && getAfter(/databases/$(database)/documents/employeeAccess/$(resource.data.uid)).data.enabled == request.resource.data.enabled;
+      allow delete: if false;
+    }
+    match /employeePortals/{emp} {
+      allow get: if isAdmin() || portalSelf(emp);
+      allow list: if isAdmin();
+      allow create, update: if isAdmin() && request.resource.data.keys().hasOnly(['entryIds','updatedAt']) && request.resource.data.entryIds is list && request.resource.data.updatedAt == request.time;
+      allow delete: if isAdmin();
+    }
+    match /employeePortals/{emp}/entries/{id} {
+      allow get: if isAdmin() || (portalSelf(emp) && portalEntryAllowed(resource.data,emp));
+      allow list: if isAdmin();
+      allow create, update: if isAdmin() && request.resource.data.employeeId == emp
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if isAdmin();
+    }
+    match /{path=**}/entries/{id} { allow read: if isAdmin(); }
+    match /recurringSlots/{key} {
+      allow read: if true;
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['serviceId','weekday','shift','startDate','endDate','updatedAt'])
+        && request.resource.data.keys().hasAll(['serviceId','weekday','shift','startDate','endDate','updatedAt'])
+        && validId(request.resource.data.serviceId) && key == serviceSlot(request.resource.data)
+        && request.resource.data.updatedAt == request.time
+        && getAfter(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.frequency == 'Semanal'
+        && getAfter(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.status == 'ativo'
+        && getAfter(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.weekday == request.resource.data.weekday
+        && getAfter(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.shift == request.resource.data.shift
+        && getAfter(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.startDate == request.resource.data.startDate
+        && getAfter(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.endDate == request.resource.data.endDate
+        && (!exists(/databases/$(database)/documents/recurringSlots/$(key)) || resource.data.serviceId == request.resource.data.serviceId
+          || (resource.data.endDate != '' && timestamp.date(int(resource.data.endDate.split('-')[0]),int(resource.data.endDate.split('-')[1]),int(resource.data.endDate.split('-')[2])) < request.time.date()));
+      allow delete: if isAdmin() && (getAfter(/databases/$(database)/documents/services/$(resource.data.serviceId)).data.status != 'ativo'
+        || getAfter(/databases/$(database)/documents/services/$(resource.data.serviceId)).data.frequency != 'Semanal'
+        || serviceSlot(getAfter(/databases/$(database)/documents/services/$(resource.data.serviceId)).data) != key);
+    }
     match /reportSettings/counters {
       allow read: if isAdmin();
       allow create, update: if isAdmin()

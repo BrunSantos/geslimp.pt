@@ -1,3 +1,4 @@
+import {recurring,slotKey,slotReserved,occurs,weekdayOf} from '../recurrence.js?v=59';
 import {liveSlots,shiftExpired} from '../shift-time.js?v=56';
 import {mergeOpenings} from './agenda-data.js?v=49';
 import {serviceFromBooking} from './booking-service.js';
@@ -39,6 +40,7 @@ export function createDataStore(api, db) {
         const ref = doc(db, 'availability', day);
         const snapshot = await tx.get(ref);
         const historyRef=doc(db,'availabilityHistory',day),history=await tx.get(historyRef);
+        const locks=await Promise.all([0,1,2].map(i=>tx.get(doc(db,'recurringSlots',weekdayOf(day)+'-'+i))));slots=slots.map((open,i)=>open&&!slotReserved(locks.filter(s=>s.exists()).map(s=>s.data()),day,i));
         const everOpened=mergeOpenings(history.data()?.slots,snapshot.data()?.slots,slots);
         tx.set(historyRef,{slots:everOpened,createdAt:history.data()?.createdAt||serverTimestamp(),updatedAt:serverTimestamp()});
         tx.set(ref, { slots, bookingId: snapshot.exists() ? (snapshot.data().bookingId || '') : '', updatedAt: serverTimestamp() });
@@ -50,6 +52,7 @@ export function createDataStore(api, db) {
       const ref = doc(collection(db, 'bookings'));
       const dayRef = doc(db, 'availability', input.day);
       await runTransaction(db, async tx => {
+        const lock=await tx.get(doc(db,'recurringSlots',weekdayOf(input.day)+'-'+(input.shift==='Dia inteiro'?0:shifts.indexOf(input.shift))));const otherLocks=input.shift==='Dia inteiro'?await Promise.all([1,2].map(i=>tx.get(doc(db,'recurringSlots',weekdayOf(input.day)+'-'+i)))):[];if([lock,...otherLocks].some(s=>s.exists()&&slotReserved([s.data()],input.day,shifts.indexOf(s.data().shift))))throw Error('Este turno está reservado por um serviço semanal.');
         const day = await tx.get(dayRef);
         const data = day.exists() ? day.data() : {};
         if (data.bookingId) throw Error('Este dia já tem uma marcação. Atualiza o calendário.');
@@ -80,6 +83,9 @@ export function createDataStore(api, db) {
       const {id, ...fields} = service;
       if(!validDate(fields.startDate)|| (fields.endDate && (!validDate(fields.endDate)||fields.endDate<fields.startDate))) throw Error('Indica datas válidas para o serviço.');
       fields.status=fields.status||'ativo';fields.endDate=fields.frequency==='Pontual'?fields.startDate:(fields.endDate||'');
+      if(fields.frequency==='Semanal'&&fields.status==='concluido'){if(fields.startDate>todayPortugal())throw Error('Para terminar um serviço que ainda não começou, usa Cancelar.');if(!fields.endDate||fields.endDate>todayPortugal())fields.endDate=todayPortugal();}
+      if(fields.frequency==='Semanal'&&fields.status==='ativo'&&!recurring(fields))throw Error('Escolhe o dia da semana e o turno do serviço semanal.');if(fields.frequency!=='Semanal'){delete fields.weekday;delete fields.shift;}
+      const availableDays=await getDocsFromServer(query(collection(db,'availability'),where('__name__','>=',fields.startDate)));
       const ref = id ? doc(db,'services',id) : doc(collection(db,'services'));
       await runTransaction(db, async tx => {
         const client = await tx.get(doc(db,'clients',fields.clientId));
@@ -88,6 +94,12 @@ export function createDataStore(api, db) {
         const c = client.data();
         if (!c.phone?.trim() || !c.address?.trim() || !c.postcode?.trim() || !c.city?.trim()) throw Error('Completa primeiro o contacto e a morada na ficha do cliente.');
         if (existing.exists() && existing.data().clientId !== fields.clientId) throw Error('Este serviço pertence a outro cliente.');
+        const old=existing.data(),oldKey=old&&recurring(old)?slotKey(old):'',newKey=recurring(fields)&&fields.status==='ativo'?slotKey(fields):'';
+        const oldLock=oldKey?await tx.get(doc(db,'recurringSlots',oldKey)):null,newLock=newKey?(newKey===oldKey?oldLock:await tx.get(doc(db,'recurringSlots',newKey))):null;
+        if(newLock?.exists()&&newLock.data().serviceId!==ref.id&&(!newLock.data().endDate||newLock.data().endDate>=todayPortugal()))throw Error('Este dia da semana e turno já pertencem a outro serviço recorrente.');
+        if(newKey){for(const snapshot of availableDays.docs){if(!occurs(fields,snapshot.id))continue;const current=await tx.get(snapshot.ref);if(current.data()?.bookingId){const booking=await tx.get(doc(db,'bookings',current.data().bookingId));const b=booking.data();if(b&&b.status!=='cancelada'&&(b.shift===fields.shift||b.shift==='Dia inteiro'))throw Error('Existe uma marcação em '+snapshot.id.split('-').reverse().join('/')+' neste turno. Resolve esse conflito antes de criar a recorrência.');}}}
+        if(oldKey&&oldKey!==newKey&&oldLock?.data()?.serviceId===ref.id)tx.delete(doc(db,'recurringSlots',oldKey));
+        if(newKey)tx.set(doc(db,'recurringSlots',newKey),{serviceId:ref.id,weekday:fields.weekday,shift:fields.shift,startDate:fields.startDate,endDate:fields.endDate||'',updatedAt:serverTimestamp()});
         tx.set(ref,{...(existing.data()?.employeeId!==undefined?{employeeId:existing.data().employeeId}:{}),...fields,createdAt:existing.exists() ? existing.data().createdAt : serverTimestamp(),updatedAt:serverTimestamp()});
       });
       return ref.id;

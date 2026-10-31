@@ -1,4 +1,4 @@
-import {reportRecords} from './report-reset.js?v=57';
+import {reportRecords} from './report-reset.js?v=59';
 import {initStockShopping} from './stock-shopping-ui.js?v=53';
 import {initStockProfit} from './stock-profit-ui.js?v=57';
 import * as api from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
