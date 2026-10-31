@@ -1,4 +1,4 @@
-import {freeSeats,slotMap,slotArrays} from './capacity.js?v=62';
-import {weekdayOf} from './recurrence.js?v=62';
-import {shiftExpired} from './shift-time.js?v=62';
+import {freeSeats,slotMap,slotArrays} from './capacity.js?v=63';
+import {weekdayOf} from './recurrence.js?v=63';
+import {shiftExpired} from './shift-time.js?v=63';
 export async function createPublicBooking(api,db,uid,input){const {doc,collection,runTransaction,serverTimestamp,arrayUnion}=api,booking=doc(collection(db,'bookings')),day=doc(db,'availability',input.day);await runTransaction(db,async tx=>{const index=['Manhã','Tarde','Noite'].indexOf(input.shift);if(index<0||shiftExpired(input.day,index))throw Error('Este horário já passou. Escolha outro turno.');const snapshot=await tx.get(day),data=snapshot.data(),group=await tx.get(doc(db,'recurringSlots',weekdayOf(input.day)+'-'+index)),groups=[{...group.data(),key:weekdayOf(input.day)+'-'+index}];if(!data?.slots?.[index]||freeSeats(data,groups,input.day,index)<1)throw Error('Este turno acabou de ficar preenchido. Escolha outro.');tx.set(booking,{...input,workersNeeded:1,employeeIds:[],status:'pendente',source:'site',ownerUid:uid,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});if(data.capacity){tx.update(day,{['reservations.'+index]:arrayUnion(booking.id),updatedAt:serverTimestamp()});}else tx.update(day,{bookingId:booking.id,updatedAt:serverTimestamp()});});return booking.id;}

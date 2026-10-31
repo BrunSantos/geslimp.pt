@@ -1,10 +1,10 @@
-import {reportRecords} from './report-reset.js?v=62';
-import {initStockShopping} from './stock-shopping-ui.js?v=62';
-import {initStockProfit} from './stock-profit-ui.js?v=62';
+import {reportRecords} from './report-reset.js?v=63';
+import {initStockShopping} from './stock-shopping-ui.js?v=63';
+import {initStockProfit} from './stock-profit-ui.js?v=63';
 import * as api from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
-import {supplierSeeds,categories,units,milli,cents,money,quantity,expenseReport} from './stock-data.js?v=62';
-import {createStockStore} from './stock-store.js?v=62';
-import {prepareTeamPhoto} from './team-photo.js?v=62';
+import {supplierSeeds,categories,units,milli,cents,money,quantity,expenseReport} from './stock-data.js?v=63';
+import {createStockStore} from './stock-store.js?v=63';
+import {prepareTeamPhoto} from './team-photo.js?v=63';
 import {todayPortugal,validDate} from './client-dates.js';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels={purchase:'Compra / entrada',issue:'Saída de consumíveis',loan:'Empréstimo',return:'Devolução'};

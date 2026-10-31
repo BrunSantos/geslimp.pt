@@ -1,4 +1,4 @@
-import {crewOf} from '../capacity.js?v=62';
+import {crewOf} from '../capacity.js?v=63';
 import {collection,collectionGroup,onSnapshot,writeBatch,doc,serverTimestamp} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 export function portalEntries({employees=[],clients=[],services=[],bookings=[],stockItems=[],stockMovements=[],stockLoans=[]}){
  const out=new Map(),put=(emp,id,data)=>{if(emp)out.set(emp+'/'+id,{employeeId:emp,...data});};const client=id=>clients.find(c=>c.id===id),item=id=>stockItems.find(i=>i.id===id);
