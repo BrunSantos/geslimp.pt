@@ -18,3 +18,5 @@
 .shopping-alert .btn[hidden]{display:none!important}
 
 .shopping-alert:not(:has(button:not([hidden]))){display:none!important}
+
+#employee-access [hidden]{display:none!important}
