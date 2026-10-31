@@ -1,8 +1,21 @@
 import {doc,onSnapshot,setDoc,serverTimestamp} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 let resetAt=0,loaded=false;
 export const timestampMillis=value=>value?.toMillis?.()??(value?.seconds?value.seconds*1000+(value.nanoseconds||0)/1e6:0);
-export function reportRecords(records){return !loaded?[]:!resetAt?records:records.filter(r=>timestampMillis(r.createdAt)>resetAt||(r.recurring&&r.day>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Lisbon',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(resetAt))));}
-export function reportAgenda(state,history){if(!loaded)return {days:{},history:{},bookings:[]};if(!resetAt)return {days:state.days,history,bookings:state.bookings};const days={};for(const [day,h]of Object.entries(history))if(timestampMillis(h.updatedAt)>resetAt)days[day]=state.days[day]||[false,false,false];const freshHistory=Object.fromEntries(Object.entries(history).filter(([,h])=>timestampMillis(h.createdAt)>resetAt));return {days,history:freshHistory,bookings:reportRecords(state.bookings)};}
+const portugalDay=ms=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Lisbon',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(ms));
+export function reportRecords(records){return !loaded?[]:!resetAt?records:records.filter(r=>timestampMillis(r.createdAt)>resetAt);}
+export function reportAgenda(state,history){
+ if(!loaded)return {days:{},history:{},bookings:[]};
+ if(!resetAt)return {days:state.days,history,bookings:state.bookings};
+ const days={},freshHistory={};
+ for(const [day,h]of Object.entries(history)){
+  const currentEpoch=timestampMillis(h.countResetAt)===resetAt;
+  const slots=currentEpoch?h.countSlots:timestampMillis(h.createdAt)>resetAt?h.slots:null;
+  if(slots){days[day]=slots;freshHistory[day]={...h,slots};}
+ }
+ const baselineDay=portugalDay(resetAt),today=portugalDay(Date.now());
+ const bookings=state.bookings.filter(r=>timestampMillis(r.createdAt)>resetAt||(r.recurring&&r.day>baselineDay&&r.day<=today));
+ return {days,history:freshHistory,bookings};
+}
 export function initReportReset(ctx){
  const $=s=>document.querySelector(s);let stop,uid='',generation=0,busy=false;
  for(const section of ['agendareports','stockreports'])$('#'+section+' .card').insertAdjacentHTML('afterbegin','<div class="row" style="justify-content:space-between;margin-bottom:16px"><span class="report-reset-note muted" role="status">A carregar período de contagem…</span><button type="button" class="btn" data-report-reset>Reiniciar contadores</button></div>');
@@ -11,5 +24,5 @@ export function initReportReset(ctx){
  document.querySelectorAll('[data-report-reset]').forEach(b=>b.onclick=()=>{if(!ctx.ready())return;$('#report-reset-status').textContent='';$('#report-reset-dialog').showModal();});
  $('#report-reset-cancel').onclick=()=>{if(!busy)$('#report-reset-dialog').close()};$('#report-reset-dialog').addEventListener('cancel',e=>{if(busy)e.preventDefault()});
  $('#report-reset-confirm').onclick=async()=>{if(busy||!ctx.ready())return;busy=true;$('#report-reset-confirm').disabled=true;$('#report-reset-cancel').disabled=true;try{await setDoc(doc(ctx.db,'reportSettings','counters'),{resetAt:serverTimestamp(),resetBy:ctx.auth.currentUser.uid});$('#report-reset-dialog').close();ctx.notice('Contadores reiniciados. Os dados de gestão foram mantidos.');}catch(e){$('#report-reset-status').textContent=e.code==='permission-denied'?'Publica as regras do Firebase incluídas na versão 57.':'Não foi possível reiniciar. Tenta novamente.';}finally{busy=false;$('#report-reset-confirm').disabled=false;$('#report-reset-cancel').disabled=false;}};
- setInterval(()=>{const next=ctx.ready()?ctx.auth.currentUser?.uid||'':'';if(next===uid)return;uid=next;const token=++generation;stop?.();resetAt=0;loaded=false;notify();$('#report-reset-dialog').close();if(next)stop=onSnapshot(doc(ctx.db,'reportSettings','counters'),snap=>{if(token!==generation)return;resetAt=timestampMillis(snap.data()?.resetAt);loaded=true;notify();},()=>{if(token!==generation)return;loaded=false;notify();});},800);
+ setInterval(()=>{const next=ctx.ready()?ctx.auth.currentUser?.uid||'':'';if(next===uid)return;uid=next;const token=++generation;stop?.();resetAt=0;loaded=false;notify();$('#report-reset-dialog').close();if(next)stop=onSnapshot(doc(ctx.db,'reportSettings','counters'),snap=>{if(token!==generation)return;if(snap.metadata?.hasPendingWrites)return;const value=timestampMillis(snap.data()?.resetAt);if(snap.exists()&&!value){loaded=false;notify();return;}resetAt=value;loaded=true;notify();},()=>{if(token!==generation)return;loaded=false;notify();});},800);
 }

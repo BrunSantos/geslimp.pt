@@ -169,14 +169,20 @@ service cloud.firestore {
         && request.resource.data.slots[1] == (previous[1] || before[1] || after.slots[1])
         && request.resource.data.slots[2] == (previous[2] || before[2] || after.slots[2]);
     }
+    function validHistoryCounter(data) {
+      return !('countResetAt' in data) && !('countSlots' in data)
+        || data.keys().hasAll(['countResetAt','countSlots']) && data.countResetAt is timestamp
+          && validSlots(data.countSlots)
+          && data.countResetAt == get(/databases/$(database)/documents/reportSettings/counters).data.resetAt;
+    }
     match /availabilityHistory/{day} {
       allow read: if isAdmin();
       allow create: if isAdmin() && validDay(day)
-        && request.resource.data.keys().hasOnly(['slots','createdAt','updatedAt']) && validSlots(request.resource.data.slots)
+        && request.resource.data.keys().hasOnly(['slots','createdAt','updatedAt','countResetAt','countSlots']) && validSlots(request.resource.data.slots) && validHistoryCounter(request.resource.data)
         && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time
         && historySlots(day,[false,false,false]);
       allow update: if isAdmin() && validDay(day)
-        && request.resource.data.keys().hasOnly(['slots','createdAt','updatedAt']) && validSlots(request.resource.data.slots)
+        && request.resource.data.keys().hasOnly(['slots','createdAt','updatedAt','countResetAt','countSlots']) && validSlots(request.resource.data.slots) && validHistoryCounter(request.resource.data)
         && request.resource.data.createdAt == resource.data.createdAt && request.resource.data.updatedAt == request.time
         && historySlots(day,resource.data.slots);
       allow delete: if false;
