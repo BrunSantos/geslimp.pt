@@ -1,7 +1,7 @@
-import {createCapacityStore} from './capacity-store.js?v=81';
-import {recurring,slotKey,slotReserved,occurs,weekdayOf} from '../recurrence.js?v=81';
-import {liveSlots,shiftExpired} from '../shift-time.js?v=81';
-import {mergeOpenings} from './agenda-data.js?v=81';
+import {createCapacityStore} from './capacity-store.js?v=82';
+import {recurring,slotKey,slotReserved,occurs,weekdayOf} from '../recurrence.js?v=82';
+import {liveSlots,shiftExpired} from '../shift-time.js?v=82';
+import {mergeOpenings} from './agenda-data.js?v=82';
 import {serviceFromBooking} from './booking-service.js';
 import {validDate,todayPortugal} from './client-dates.js';
 // Operações atómicas: nunca substituímos toda a base de dados com uma cópia do navegador.

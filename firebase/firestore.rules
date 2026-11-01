@@ -156,6 +156,79 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
       allow delete: if false;
     }
+    function assignedServiceEmployee(sid,emp) {
+      let s = get(/databases/$(database)/documents/services/$(sid)).data;
+      return s.get('status','ativo') != 'cancelado'
+        && (s.get('employeeIds',null) != null ? s.employeeIds.hasAny([emp])
+          : (s.get('employeeId','') != '' ? s.employeeId == emp : assignedClient(s.clientId,emp)));
+    }
+    function workSelf(emp) {
+      return request.auth != null && (isAdmin()
+        ? get(/databases/$(database)/documents/employees/$(emp)).data.email.lower() == request.auth.token.email.lower()
+          && get(/databases/$(database)/documents/employees/$(emp)).data.status == 'ativo'
+        : portalSelf(emp));
+    }
+    function portalServiceWorker(sid) {
+      let a = get(/databases/$(database)/documents/employeeAccess/$(request.auth.uid)).data;
+      return portalSelf(a.employeeId) && assignedServiceEmployee(sid,a.employeeId);
+    }
+    function serviceWorkDay(sid,day) {
+      let s = get(/databases/$(database)/documents/services/$(sid)).data;
+      let parts = day.split('-');
+      return validDay(day) && day >= s.startDate
+        && (s.get('endDate','') == '' || day <= s.endDate)
+        && (s.frequency == 'Pontual' ? day == s.startDate : s.frequency == 'Semanal' && weekOf(day) == s.weekday)
+        && timestamp.date(int(parts[0]),int(parts[1]),int(parts[2])) <= request.time + duration.value(1,'h');
+    }
+    function workShape(d,sid,day,uid) {
+      return d.keys().hasOnly(['serviceId','clientId','day','employeeId','uid','status','startedAt','finishedAt','comment','updatedAt'])
+        && d.keys().hasAll(['serviceId','clientId','day','employeeId','uid','status','startedAt','finishedAt','comment','updatedAt'])
+        && d.serviceId == sid && d.day == day && d.uid == uid && uid == request.auth.uid
+        && d.employeeId is string && workSelf(d.employeeId) && assignedServiceEmployee(sid,d.employeeId)
+        && d.clientId == get(/databases/$(database)/documents/services/$(sid)).data.clientId
+        && serviceWorkDay(sid,day) && d.status in ['started','completed','incident']
+        && d.comment is string && d.comment.size() <= 5000 && d.updatedAt == request.time;
+    }
+    match /serviceWork/{sid}/days/{day}/workers/{uid} {
+      allow get: if isAdmin() || (request.auth != null && request.auth.uid == uid && portalServiceWorker(sid));
+      allow list: if isAdmin();
+      allow create: if request.auth != null && workShape(request.resource.data,sid,day,uid)
+        && request.resource.data.status in ['started','incident'] && request.resource.data.finishedAt == null
+        && request.resource.data.comment == ''
+        && (request.resource.data.status == 'started' ? request.resource.data.startedAt == request.time : request.resource.data.startedAt == null);
+      allow update: if request.auth != null && workShape(request.resource.data,sid,day,uid)
+        && resource.data.status != 'completed' && request.resource.data.employeeId == resource.data.employeeId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','startedAt','finishedAt','comment','updatedAt'])
+        && (request.resource.data.status == 'started'
+          ? resource.data.status == 'incident' && request.resource.data.startedAt == (resource.data.startedAt == null ? request.time : resource.data.startedAt)
+            && request.resource.data.finishedAt == null && request.resource.data.comment == ''
+          : request.resource.data.status == 'completed'
+            ? resource.data.status == 'started' && request.resource.data.startedAt == resource.data.startedAt
+              && request.resource.data.finishedAt == request.time
+            : request.resource.data.startedAt == resource.data.startedAt && request.resource.data.finishedAt == null && request.resource.data.comment == '');
+      allow delete: if false;
+    }
+    match /{path=**}/workers/{uid} { allow read: if isAdmin(); }
+    function workFinished(sid,day) {
+      return getAfter(/databases/$(database)/documents/serviceWork/$(sid)/days/$(day)/workers/$(request.auth.uid)).data.status == 'completed';
+    }
+    match /serviceIncidents/{id} {
+      allow read: if isAdmin();
+      allow create: if request.auth != null && validId(id)
+        && request.resource.data.keys().hasOnly(['serviceId','clientId','day','employeeId','uid','message','status','createdAt'])
+        && request.resource.data.keys().hasAll(['serviceId','clientId','day','employeeId','uid','message','status','createdAt'])
+        && request.resource.data.uid == request.auth.uid && workSelf(request.resource.data.employeeId)
+        && assignedServiceEmployee(request.resource.data.serviceId,request.resource.data.employeeId)
+        && serviceWorkDay(request.resource.data.serviceId,request.resource.data.day)
+        && request.resource.data.clientId == get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.clientId
+        && request.resource.data.message is string && request.resource.data.message.size() > 0 && request.resource.data.message.size() <= 5000
+        && request.resource.data.status == 'open' && request.resource.data.createdAt == request.time;
+      allow update: if isAdmin() && resource.data.status == 'open' && request.resource.data.status == 'resolved'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','resolution','resolvedBy','resolvedAt'])
+        && request.resource.data.resolution is string && request.resource.data.resolution.size() <= 5000
+        && request.resource.data.resolvedBy == request.auth.uid && request.resource.data.resolvedAt == request.time;
+      allow delete: if false;
+    }
     function servicePhotoAccess(serviceId) {
       let a = get(/databases/$(database)/documents/employeeAccess/$(request.auth.uid)).data;
       let s = get(/databases/$(database)/documents/services/$(serviceId)).data;
@@ -244,6 +317,11 @@ service cloud.firestore {
       allow delete: if false;
     }
     match /bookings/{id} {
+      allow update: if request.auth != null && resource.data.status in ['confirmada','concluida'] && request.resource.data.status == 'concluida'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt'])
+        && request.resource.data.updatedAt == request.time && workFinished('site-'+id,resource.data.day)
+        && get(/databases/$(database)/documents/services/$('site-'+id)).data.clientId == resource.data.clientId
+        && (isAdmin() || portalServiceWorker('site-'+id));
       allow read: if isAdmin();
       allow create: if validId(id) && validBooking(request.resource.data,id)
         && (isAdmin() ? freeBooking(request.resource.data) : (isCapacity(get(/databases/$(database)/documents/availability/$(request.resource.data.day)).data) ? validPublicBooking(request.resource.data) : visitorCanBook(request.resource.data)))
@@ -290,6 +368,14 @@ service cloud.firestore {
         && data.createdAt is timestamp && data.updatedAt == request.time;
     }
     match /serviceCompletions/{id} {
+      allow get: if request.auth != null && (isAdmin() ||
+        (!exists(/databases/$(database)/documents/serviceCompletions/$(id))
+          ? portalSelf(get(/databases/$(database)/documents/employeeAccess/$(request.auth.uid)).data.employeeId)
+          : portalServiceWorker(resource.data.serviceId)));
+      allow create: if request.auth != null && validId(id) && validServiceCompletion(request.resource.data,id)
+        && request.resource.data.employeeIds.size() == 1 && workSelf(request.resource.data.employeeIds[0])
+        && assignedServiceEmployee(request.resource.data.serviceId,request.resource.data.employeeIds[0])
+        && workFinished(request.resource.data.serviceId,request.resource.data.day);
       allow read: if isAdmin();
       allow create: if isAdmin() && validId(id) && validServiceCompletion(request.resource.data,id);
       allow update, delete: if false;
@@ -308,6 +394,11 @@ service cloud.firestore {
         && d.status == 'concluida' && d.createdAt == request.time;
     }
     match /services/{id} {
+      allow update: if request.auth != null && resource.data.frequency == 'Pontual' && resource.data.get('status','ativo') in ['ativo','concluido']
+        && request.resource.data.status == 'concluido'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt'])
+        && request.resource.data.updatedAt == request.time && workFinished(id,resource.data.startDate)
+        && (isAdmin() || portalServiceWorker(id));
       allow read: if isAdmin();
       allow create: if isAdmin() && validId(id) && validService(request.resource.data) && serviceLock(id,request.resource.data) && activeEmployee(request.resource.data.get('employeeId',''))
         && request.resource.data.createdAt == request.time;
@@ -752,8 +843,9 @@ service cloud.firestore {
     match /notificationSettings/admin {
       allow read: if isAdmin();
       allow create, update: if isAdmin() && request.resource.data.keys().hasOnly(['enabled','updatedAt'])
-        && request.resource.data.enabled is map && request.resource.data.enabled.keys().hasOnly(['stock','loans','services','monthly','bookings','quotes'])
+        && request.resource.data.enabled is map && request.resource.data.enabled.keys().hasOnly(['stock','loans','services','monthly','bookings','quotes','incidents'])
         && request.resource.data.enabled.get('stock',true) is bool && request.resource.data.enabled.get('loans',true) is bool
+        && request.resource.data.enabled.get('incidents',true) is bool
         && request.resource.data.enabled.get('services',true) is bool && request.resource.data.enabled.get('monthly',true) is bool
         && request.resource.data.enabled.get('bookings',true) is bool && request.resource.data.enabled.get('quotes',true) is bool
         && request.resource.data.updatedAt == request.time;
@@ -763,8 +855,9 @@ service cloud.firestore {
       allow get: if isAdmin() && request.auth.uid == uid;
       allow list: if false;
       allow create, update: if isAdmin() && request.auth.uid == uid && request.resource.data.keys().hasOnly(['enabled','updatedAt'])
-        && request.resource.data.enabled is map && request.resource.data.enabled.keys().hasOnly(['stock','loans','services','monthly','bookings','quotes'])
+        && request.resource.data.enabled is map && request.resource.data.enabled.keys().hasOnly(['stock','loans','services','monthly','bookings','quotes','incidents'])
         && request.resource.data.enabled.get('stock',true) is bool && request.resource.data.enabled.get('loans',true) is bool
+        && request.resource.data.enabled.get('incidents',true) is bool
         && request.resource.data.enabled.get('services',true) is bool && request.resource.data.enabled.get('monthly',true) is bool
         && request.resource.data.enabled.get('bookings',true) is bool && request.resource.data.enabled.get('quotes',true) is bool
         && request.resource.data.updatedAt == request.time;
