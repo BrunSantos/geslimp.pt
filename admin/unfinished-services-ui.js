@@ -1,5 +1,5 @@
-import {notificationEnabled} from './notifications.js?v=94';
-import {unfinishedServices} from './unfinished-services.js?v=94';
+import {notificationEnabled} from './notifications.js?v=95';
+import {unfinishedServices} from './unfinished-services.js?v=95';
 import {todayPortugal} from './client-dates.js';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function initUnfinishedServices(ctx){const $=s=>document.querySelector(s);let rows=[],lastList='';$('.shopping-alert').insertAdjacentHTML('beforeend','<button class="btn" id="unfinished-bell" type="button"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span id="unfinished-label">A carregar serviços…</span></button>');document.body.insertAdjacentHTML('beforeend','<dialog id="unfinished-dialog"><h2>Serviços por concluir</h2><p>Serviços de datas passadas ainda por fechar. Nos recorrentes, concluis apenas a data indicada.</p><div id="unfinished-list"></div><div class="actions"><button class="btn" id="unfinished-close" type="button">Fechar</button></div></dialog>');
