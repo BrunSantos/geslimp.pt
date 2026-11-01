@@ -1,4 +1,4 @@
-import {monthlyQuote,quoteTotalLabel,quotePaymentNote} from '../quote-pricing.js?v=86';
+import {monthlyQuote,quoteTotalLabel,quotePaymentNote} from '../quote-pricing.js?v=87';
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
 import {getAuth,signInAnonymously} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import {getFirestore,doc,onSnapshot,runTransaction,serverTimestamp} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
