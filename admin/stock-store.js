@@ -1,6 +1,6 @@
-import {readBillingBalance,writeBillingBalance} from './billing-data.js?v=82';
-import {writeStockInvoice} from './stock-invoice-data.js?v=82';
-import {supplierSeeds,movementValues} from './stock-data.js?v=82';
+import {readBillingBalance,writeBillingBalance} from './billing-data.js?v=84';
+import {writeStockInvoice} from './stock-invoice-data.js?v=84';
+import {supplierSeeds,movementValues} from './stock-data.js?v=84';
 import {validDate,todayPortugal} from './client-dates.js';
 export function createStockStore(api,db){
  const {doc,runTransaction,serverTimestamp}=api;

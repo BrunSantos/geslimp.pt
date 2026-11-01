@@ -1,6 +1,6 @@
 import * as api from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
-import {createServiceWork} from './service-work-store.js?v=82';
-import {occurs} from './recurrence.js?v=82';
+import {createServiceWork} from './service-work-store.js?v=84';
+import {occurs} from './recurrence.js?v=84';
 import {todayPortugal} from './admin/client-dates.js';
 export const workKey=(id,day)=>id+'|'+day;
 export function workButtons(record,day){const sid=record.sourceId||record.id;if(!sid||!['Pontual','Semanal'].includes(record.frequency))return '';return `<div class="actions work-actions"><button class="btn" type="button" data-work-action="start" data-work-service="${sid}" data-work-day="${day}">Iniciar serviço</button><button class="btn" type="button" data-work-action="finish" data-work-service="${sid}" data-work-day="${day}">Finalizar serviço</button><button class="btn danger" type="button" data-work-action="incident" data-work-service="${sid}" data-work-day="${day}">Comunicar incidência</button><p class="work-summary" data-work-summary="${workKey(sid,day)}"></p></div>`;}

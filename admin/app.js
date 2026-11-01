@@ -1,29 +1,29 @@
-import {initMyServices} from './my-services.js?v=82';
-import {initServicePhotos} from '../service-photos.js?v=82';
-import {initSessionName} from './session-name.js?v=82';
-import {initNotifications} from './notifications.js?v=82';
-import {initUnfinishedServices} from './unfinished-services-ui.js?v=82';
-import {createServiceOccurrences} from './service-occurrences.js?v=82';
-import {initServiceOccurrences} from './service-occurrences-ui.js?v=82';
-import {initCapacityUI} from './capacity-ui.js?v=82';
-import {freeSeats,crewOf,shiftIndices} from '../capacity.js?v=82';
-import {recurring,occurs,recurringVisits,weekNames} from '../recurrence.js?v=82';
-import {initEmployeeProjections} from './employee-projections.js?v=82';
-import {initReportReset} from './report-reset.js?v=82';
-import {liveSlots,shiftExpired} from '../shift-time.js?v=82';
-import {initAgendaReport} from './agenda-report.js?v=82';
-import {bookingSlots} from './agenda-data.js?v=82';
-import {resetAdminNavigation} from './navigation-start.js?v=82';
-import {initStock} from './stock.js?v=82';
-import {initTeam} from './team.js?v=82';
-import {initQuotes} from './quotes.js?v=82';
+import {initMyServices} from './my-services.js?v=84';
+import {initServicePhotos} from '../service-photos.js?v=84';
+import {initSessionName} from './session-name.js?v=84';
+import {initNotifications} from './notifications.js?v=84';
+import {initUnfinishedServices} from './unfinished-services-ui.js?v=84';
+import {createServiceOccurrences} from './service-occurrences.js?v=84';
+import {initServiceOccurrences} from './service-occurrences-ui.js?v=84';
+import {initCapacityUI} from './capacity-ui.js?v=84';
+import {freeSeats,crewOf,shiftIndices} from '../capacity.js?v=84';
+import {recurring,occurs,recurringVisits,weekNames} from '../recurrence.js?v=84';
+import {initEmployeeProjections} from './employee-projections.js?v=84';
+import {initReportReset} from './report-reset.js?v=84';
+import {liveSlots,shiftExpired} from '../shift-time.js?v=84';
+import {initAgendaReport} from './agenda-report.js?v=84';
+import {bookingSlots} from './agenda-data.js?v=84';
+import {resetAdminNavigation} from './navigation-start.js?v=84';
+import {initStock} from './stock.js?v=84';
+import {initTeam} from './team.js?v=84';
+import {initQuotes} from './quotes.js?v=84';
 import {todayPortugal, validDate, isPremium} from './client-dates.js';
 import { createMapLinks } from './map-links.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
 import { getAuth, setPersistence, browserSessionPersistence, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, reauthenticateWithCredential, EmailAuthProvider, updatePassword } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import { getFirestore, collection, doc, onSnapshot, getDocFromServer, getDocsFromServer, query, where, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 import { firebaseConfig } from './firebase-config.js';
-import { createDataStore } from './data-store.js?v=82';
+import { createDataStore } from './data-store.js?v=84';
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 auth.languageCode = 'pt';
@@ -352,7 +352,7 @@ document.addEventListener('click',async event=>{
  const id=b.dataset.serviceComplete||b.dataset.serviceReschedule||b.dataset.serviceCancel||b.dataset.serviceDelete;
  const service=state.services.find(s=>s.id===id);if(!service)return;
  if(b.dataset.serviceComplete&&recurring(service)){occurrenceUI.open(id,'complete');return;}
- if(b.dataset.serviceReschedule){openServiceForm(service);$('#service-heading').textContent='Reagendar serviço';$('#service-start').min=todayPortugal();$('#service-state').value='ativo';$('#service-start').focus();return;}
+ if(b.dataset.serviceReschedule){serviceClientId=service.clientId;openServiceForm(service);$('#service-heading').textContent=recurring(service)?'Reagendar recorrência':'Reagendar serviço';$('#service-start').min=todayPortugal();$('#service-state').value='ativo';$('#service-start').focus();return;}
  if(b.dataset.serviceDelete){if(confirm('Apagar definitivamente este serviço cancelado?'))await perform(()=>store.deleteCancelledService(id),'Serviço apagado.');return;}
  const status=b.dataset.serviceComplete?'concluido':'cancelado';
  if(confirm(status==='concluido'?(recurring(service)?'Concluir este serviço semanal e terminar as próximas visitas?':'Marcar este serviço como concluído?'):'Cancelar este serviço?'))await perform(()=>store.saveService({...service,status,endDate:service.frequency==='Pontual'?service.startDate:(recurring(service)&&(!service.endDate||service.endDate>todayPortugal())?todayPortugal():(service.endDate||todayPortugal()))}),'Estado do serviço atualizado.');

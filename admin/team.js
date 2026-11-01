@@ -1,9 +1,9 @@
-import {initEmployeeAccess} from './employee-access.js?v=82';
-import {initTeamPostcode} from './team-postcode.js?v=82';
-import {initTeamAssignments} from './team-assignments.js?v=82';
+import {initEmployeeAccess} from './employee-access.js?v=84';
+import {initTeamPostcode} from './team-postcode.js?v=84';
+import {initTeamAssignments} from './team-assignments.js?v=84';
 import {collection,doc,onSnapshot,runTransaction,serverTimestamp} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
-import {roles,contracts,levelOf,initials,photoValid,validateEmployee} from './team-data.js?v=82';
-import {prepareTeamPhoto} from './team-photo.js?v=82';
+import {roles,contracts,levelOf,initials,photoValid,validateEmployee} from './team-data.js?v=84';
+import {prepareTeamPhoto} from './team-photo.js?v=84';
 import {todayPortugal} from './client-dates.js';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const date=v=>v?new Date(v+'T12:00:00').toLocaleDateString('pt-PT'):'—';
