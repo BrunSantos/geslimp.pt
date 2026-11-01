@@ -1,7 +1,8 @@
-import {createCapacityStore} from './capacity-store.js?v=85';
-import {recurring,slotKey,slotReserved,occurs,weekdayOf} from '../recurrence.js?v=85';
-import {liveSlots,shiftExpired} from '../shift-time.js?v=85';
-import {mergeOpenings} from './agenda-data.js?v=85';
+import {quoteConversion} from './quote-conversion.js?v=86';
+import {createCapacityStore} from './capacity-store.js?v=86';
+import {recurring,slotKey,slotReserved,occurs,weekdayOf} from '../recurrence.js?v=86';
+import {liveSlots,shiftExpired} from '../shift-time.js?v=86';
+import {mergeOpenings} from './agenda-data.js?v=86';
 import {serviceFromBooking} from './booking-service.js';
 import {validDate,todayPortugal} from './client-dates.js';
 // Operações atómicas: nunca substituímos toda a base de dados com uma cópia do navegador.
@@ -80,7 +81,7 @@ export function createDataStore(api, db) {
         if (status === 'cancelada') tx.update(dayRef, { bookingId: '', updatedAt: serverTimestamp() });
       });
     },
-    async saveService(service) {
+    async saveService(service,conversion=null) {
       const {id, ...fields} = service;
       if(!validDate(fields.startDate)|| (fields.endDate && (!validDate(fields.endDate)||fields.endDate<fields.startDate))) throw Error('Indica datas válidas para o serviço.');
       fields.status=fields.status||'ativo';fields.endDate=fields.frequency==='Pontual'?fields.startDate:(fields.endDate||'');
@@ -91,6 +92,7 @@ export function createDataStore(api, db) {
       await runTransaction(db, async tx => {
         const client = await tx.get(doc(db,'clients',fields.clientId));
         const existing = await tx.get(ref);
+        const commitQuote=await quoteConversion(api,db,tx,conversion,ref.id,fields,existing);
         if (!client.exists()) throw Error('Cliente não encontrado.');
         const c = client.data();
         if (!c.phone?.trim() || !c.address?.trim() || !c.postcode?.trim() || !c.city?.trim()) throw Error('Completa primeiro o contacto e a morada na ficha do cliente.');
@@ -99,6 +101,7 @@ export function createDataStore(api, db) {
         const oldLock=oldKey?await tx.get(doc(db,'recurringSlots',oldKey)):null,newLock=newKey?(newKey===oldKey?oldLock:await tx.get(doc(db,'recurringSlots',newKey))):null;
         if(newLock?.exists()&&newLock.data().serviceId!==ref.id&&(!newLock.data().endDate||newLock.data().endDate>=todayPortugal()))throw Error('Este dia da semana e turno já pertencem a outro serviço recorrente.');
         if(newKey){for(const snapshot of availableDays.docs){if(!occurs(fields,snapshot.id))continue;const current=await tx.get(snapshot.ref);if(current.data()?.bookingId){const booking=await tx.get(doc(db,'bookings',current.data().bookingId));const b=booking.data();if(b&&b.status!=='cancelada'&&(b.shift===fields.shift||b.shift==='Dia inteiro'))throw Error('Existe uma marcação em '+snapshot.id.split('-').reverse().join('/')+' neste turno. Resolve esse conflito antes de criar a recorrência.');}}}
+        commitQuote();
         if(oldKey&&oldKey!==newKey&&oldLock?.data()?.serviceId===ref.id)tx.delete(doc(db,'recurringSlots',oldKey));
         if(newKey)tx.set(doc(db,'recurringSlots',newKey),{serviceId:ref.id,weekday:fields.weekday,shift:fields.shift,startDate:fields.startDate,endDate:fields.endDate||'',updatedAt:serverTimestamp()});
         tx.set(ref,{...(existing.data()?.employeeId!==undefined?{employeeId:existing.data().employeeId}:{}),...fields,createdAt:existing.exists() ? existing.data().createdAt : serverTimestamp(),updatedAt:serverTimestamp()});

@@ -1,7 +1,7 @@
-import {occurs} from './recurrence.js?v=85';
-import {shiftIndices} from './capacity.js?v=85';
+import {occurs} from './recurrence.js?v=86';
+import {shiftIndices} from './capacity.js?v=86';
 import * as api from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
-import {createRescheduleStore} from './admin/reschedule-store.js?v=85';
+import {createRescheduleStore} from './admin/reschedule-store.js?v=86';
 import {todayPortugal} from './admin/client-dates.js';
 export function initRescheduleUI({db,auth,ready,getEmployee,getServices,getBookings=()=>[],admin=false}){let uid='',stop,requests=[],busy=false,chosen;const store=createRescheduleStore(api,db,auth),dialog=document.createElement('dialog');dialog.className='work-modal';dialog.innerHTML='<form><h2></h2><p class="reschedule-description"></p><label>Nova data<input type="date" required></label><label>Novo turno<select required><option>Manhã</option><option>Tarde</option><option>Noite</option></select></label><label>Motivo<textarea required maxlength="5000" rows="4"></textarea></label><p class="reschedule-error" role="alert"></p><div class="actions"><button type="button" class="btn reschedule-close">Cancelar</button><button type="submit" class="btn primary">Enviar pedido</button></div></form>';document.body.append(dialog);const $=s=>dialog.querySelector(s);
 function paint(){for(const b of document.querySelectorAll('[data-reschedule-request]')){const pending=requests.some(r=>r.serviceId===b.dataset.rescheduleRequest&&r.day===b.dataset.rescheduleDay&&r.status==='pending');b.disabled=busy||!ready()||pending;b.textContent=pending?'Reagendamento a aguardar aprovação':admin?'Reagendar serviço':'Pedir reagendamento';const p=b.parentElement.querySelector('.reschedule-status');const row=requests.filter(r=>r.serviceId===b.dataset.rescheduleRequest&&r.day===b.dataset.rescheduleDay).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0))[0];if(p)p.textContent=row?(row.status==='pending'?'Pedido pendente para ':row.status==='approved'?'Reagendamento aprovado para ':'Pedido recusado para ')+row.targetDay.split('-').reverse().join('/')+' · '+row.targetShift:'';}}

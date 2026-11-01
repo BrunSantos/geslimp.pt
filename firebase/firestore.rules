@@ -898,7 +898,7 @@ service cloud.firestore {
       allow create, update: if isAdmin() && request.resource.data.keys().hasOnly(['serviceId','month','mode','amountCents','updatedAt'])
         && validId(request.resource.data.serviceId) && validBillingMonth(request.resource.data.month)
         && id == request.resource.data.serviceId + '-' + request.resource.data.month
-        && exists(/databases/$(database)/documents/services/$(request.resource.data.serviceId))
+        && existsAfter(/databases/$(database)/documents/services/$(request.resource.data.serviceId))
         && request.resource.data.mode in ['monthly','once']
         && request.resource.data.amountCents is int && request.resource.data.amountCents > 0 && request.resource.data.amountCents <= 100000000
         && request.resource.data.updatedAt == request.time;
