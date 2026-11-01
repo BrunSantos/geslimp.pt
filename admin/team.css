@@ -18,3 +18,17 @@
 .team-action-options{position:absolute;right:0;bottom:calc(100% + 10px);width:210px;max-width:calc(100vw - 60px);padding:6px;background:#fff;border:1px solid #d5e4ee;border-radius:14px;box-shadow:0 10px 30px #12334d26;display:flex;flex-direction:column;gap:2px}
 .team-action-options>.btn{width:100%;min-height:46px;justify-content:flex-start;text-align:left;border:0;border-radius:8px;white-space:nowrap;padding:12px 14px}
 .team-action-options>.btn:hover{background:#edf6fc}
+/* Disposição do kit: controlos alinhados no computador e cartões no telemóvel. */
+.kit-row{align-items:end}
+.kit-row label{display:flex;flex-direction:column;align-self:stretch;justify-content:flex-end;gap:6px;margin:0;min-width:0}
+.kit-row label input,.kit-row label select{display:block;width:100%;height:48px;min-height:48px;box-sizing:border-box;margin:0;font:inherit}
+.kit-row .kit-remove{width:46px;height:48px;min-height:48px;padding:0;display:flex;align-items:center;justify-content:center}
+@media(max-width:650px){
+ .kit-row{position:relative;display:grid;grid-template-columns:minmax(0,1fr);gap:14px;padding:18px;border:1px solid #dbe8ef;border-radius:14px;margin:0 0 12px;background:#fff}
+ .kit-row label:nth-child(1),.kit-row label:nth-child(2),.kit-row label:nth-child(3){grid-column:1;grid-row:auto}
+ .kit-row label:nth-child(1){padding-top:0;position:relative;gap:18px}
+ .kit-row label:nth-child(1) input{margin-top:14px}
+ .kit-row label:nth-child(1)::first-line{line-height:1.4}
+ .kit-row .kit-remove{position:absolute;right:18px;top:18px;grid-column:auto;grid-row:auto}
+ .kit-row .kit-line-status{grid-column:1}
+}

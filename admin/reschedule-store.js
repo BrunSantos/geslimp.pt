@@ -1,7 +1,7 @@
-import {crewOf,shiftIndices,groupEntries,weeklyUsed,slotMap,slotArrays} from '../capacity.js?v=95';
-import {occurs,weekdayOf,slotKey} from '../recurrence.js?v=95';
+import {crewOf,shiftIndices,groupEntries,weeklyUsed,slotMap,slotArrays} from '../capacity.js?v=96';
+import {occurs,weekdayOf,slotKey} from '../recurrence.js?v=96';
 import {todayPortugal,validDate} from './client-dates.js';
-import {shiftExpired} from '../shift-time.js?v=95';
+import {shiftExpired} from '../shift-time.js?v=96';
 export function createRescheduleStore(api,db,auth){const {doc,collection,runTransaction,serverTimestamp}=api;return {async decide(id,approve){const newRef=doc(collection(db,'services'));await runTransaction(db,async tx=>{
 const rr=doc(db,'serviceRescheduleRequests',id),request=await tx.get(rr),r=request.data();if(!r||r.status!=='pending')throw Error('Este pedido já foi tratado.');
 if(!approve){tx.update(rr,{status:'rejected',decidedBy:auth.currentUser.uid,decidedAt:serverTimestamp()});return;}

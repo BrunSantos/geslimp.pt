@@ -1,9 +1,9 @@
-import {initRescheduleUI,rescheduleButton} from '../service-reschedule.js?v=95';
+import {initRescheduleUI,rescheduleButton} from '../service-reschedule.js?v=96';
 import * as api from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
-import {crewOf} from '../capacity.js?v=95';
-import {occurs} from '../recurrence.js?v=95';
+import {crewOf} from '../capacity.js?v=96';
+import {occurs} from '../recurrence.js?v=96';
 import {todayPortugal} from './client-dates.js';
-import {initServiceWorkUI,workButtons} from '../service-work.js?v=95';
+import {initServiceWorkUI,workButtons} from '../service-work.js?v=96';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const time=t=>t?.toDate?.().toLocaleString('pt-PT',{timeZone:'Europe/Lisbon'})||'—';
 export function initMyServices(ctx){const $=s=>document.querySelector(s);let logs=[],incidents=[],uid='',stops=[],selected=todayPortugal(),last='';const nav=$('[data-page="availability"]').parentElement;nav.insertAdjacentHTML('beforeend','<button type="button" data-page="my-services"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M8 15l3 3 5-5"/></svg></span><span class="nav-label">Os meus serviços</span></button>');$('main').insertAdjacentHTML('beforeend','<section class="section" id="my-services"><div class="card"><h2>Os meus serviços</h2><p>A tua agenda de trabalho e os registos de início, finalização e incidências.</p><label>Data<input type="date" id="my-work-day"></label><button class="btn" id="my-work-today" type="button">Hoje</button><div class="my-work-week"></div><div id="my-work-list"></div></div></section>');$('#my-work-day').value=selected;
 function employee(){const email=ctx.auth.currentUser?.email?.trim().toLowerCase();return ctx.getState().employees.find(e=>e.email?.trim().toLowerCase()===email);}
