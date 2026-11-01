@@ -1,4 +1,4 @@
-import {movementValues} from './stock-data.js?v=96';
+import {movementValues} from './stock-data.js?v=97';
 import {todayPortugal} from './client-dates.js';
 export const defaultKit=()=>['Detergentes','Vassoura','Pá','Esfregona','Balde','Panos de limpeza'].map((label,i)=>({id:'base-'+i,label,itemId:'',qtyMilli:1000}));
 export function validKitRows(rows){if(!Array.isArray(rows)||rows.length>30)throw Error('O kit pode ter até 30 artigos.');const ids=new Set(),items=new Set();for(const row of rows){if(!/^[A-Za-z0-9-]{1,128}$/.test(row.id)||ids.has(row.id)||!row.label?.trim()||row.label.length>100||!Number.isSafeInteger(row.qtyMilli)||row.qtyMilli<=0||row.qtyMilli>10000000||row.itemId&&!/^[A-Za-z0-9-]{1,128}$/.test(row.itemId)||row.itemId&&items.has(row.itemId))throw Error('Verifica os nomes, quantidades e artigos repetidos do kit.');ids.add(row.id);if(row.itemId)items.add(row.itemId);}return rows;}
