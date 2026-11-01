@@ -1,7 +1,7 @@
-import {initRescheduleUI,rescheduleButton} from '../service-reschedule.js?v=97';
-import {initServiceWorkUI,workButtons} from '../service-work.js?v=97';
-import {initServicePhotos} from '../service-photos.js?v=97';
-import {occurs,recurring,weekdayOf} from '../recurrence.js?v=97';
+import {initRescheduleUI,rescheduleButton} from '../service-reschedule.js?v=98';
+import {initServiceWorkUI,workButtons} from '../service-work.js?v=98';
+import {initServicePhotos} from '../service-photos.js?v=98';
+import {occurs,recurring,weekdayOf} from '../recurrence.js?v=98';
 import {todayPortugal} from '../admin/client-dates.js';
 const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),demo=new URLSearchParams(location.search).has('demo');let entries=[],view=new Date(todayPortugal()+'T12:00:00'),selected=todayPortugal(),unsubscribe=null;let portalWork,portalReschedule;view.setDate(1);
 const date=s=>s?s.split('-').reverse().join('/'):'—',qty=n=>new Intl.NumberFormat('pt-PT',{maximumFractionDigits:3}).format((n||0)/1000),key=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
