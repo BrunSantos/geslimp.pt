@@ -1,11 +1,11 @@
-import {initStockInvoices} from './stock-invoices.js?v=89';
-import {reportRecords} from './report-reset.js?v=89';
-import {initStockShopping} from './stock-shopping-ui.js?v=89';
-import {initStockProfit} from './stock-profit-ui.js?v=89';
+import {initStockInvoices} from './stock-invoices.js?v=92';
+import {reportRecords} from './report-reset.js?v=92';
+import {initStockShopping} from './stock-shopping-ui.js?v=92';
+import {initStockProfit} from './stock-profit-ui.js?v=92';
 import * as api from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
-import {supplierSeeds,categories,units,milli,cents,money,quantity,expenseReport} from './stock-data.js?v=89';
-import {createStockStore} from './stock-store.js?v=89';
-import {prepareTeamPhoto} from './team-photo.js?v=89';
+import {supplierSeeds,categories,units,milli,cents,money,quantity,expenseReport} from './stock-data.js?v=92';
+import {createStockStore} from './stock-store.js?v=92';
+import {prepareTeamPhoto} from './team-photo.js?v=92';
 import {todayPortugal,validDate} from './client-dates.js';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels={purchase:'Compra / entrada',issue:'Saída de consumíveis',loan:'Empréstimo',return:'Devolução'};
@@ -48,7 +48,6 @@ export function initStock(ctx){
  $('#stock-chart-all').onclick=()=>{$('#stock-report-employee').value='';renderReports()};
  $('#stock-report-from').value=todayPortugal().slice(0,7)+'-01';$('#stock-report-to').value=todayPortugal();
  function subscribe(uid){const current=++generation;stops.forEach(s=>s());stops=[];items=[];suppliers=[];movements=[];loans=[];employees=[];receipts=[];loaded=false;fillSuppliers();render();if(!uid)return;for(const [name,assign]of [['stockItems',v=>{items=v;loaded=true}],['stockSuppliers',v=>{suppliers=v;fillSuppliers()}],['stockMovements',v=>movements=v],['stockLoans',v=>loans=v],['clientReceipts',v=>receipts=v],['employees',v=>{employees=v;const old=$('#stock-report-employee').value;$('#stock-report-employee').innerHTML='<option value="">Todos os colaboradores</option>'+v.map(e=>`<option value="${esc(e.id)}">${esc(e.name)}${e.status==='inativo'?' (inativo)':''}</option>`).join('');$('#stock-report-employee').value=old}]] )stops.push(api.onSnapshot(api.collection(ctx.db,name),snap=>{if(current!==generation)return;assign(snap.docs.map(d=>({...d.data(),id:d.id})));render()},error=>{if(current!==generation)return;loaded=true;message('#stock-message',friendly(error),true)}));}
- $('#stock-refresh').onclick=()=>{if(ctx.ready()){message('#stock-message','');subscribe(ctx.auth.currentUser.uid)}};
  setInterval(()=>{const uid=ctx.ready()?ctx.auth.currentUser?.uid||'':'';if(uid===user)return;user=uid;subscribe(uid);if(!uid){profit.reset();photoGeneration++;photoData='';for(const id of ['#stock-editor','#stock-move','#stock-suppliers','#stock-history'])$(id).close();$('#stock-form').reset();$('#stock-move-form').reset();$('#stock-history-content').replaceChildren();$('#stock-photo-preview').replaceChildren();$('#stock-report-employee').innerHTML='<option value="">Todos os colaboradores</option>';}},800);
  for(const d of document.querySelectorAll('#stock-editor,#stock-move,#stock-suppliers,#stock-history,#stock-receipt,#stock-cancel-receipt'))d.addEventListener('focusin',e=>{if(e.target.matches('input,select,textarea'))setTimeout(()=>{if(document.activeElement===e.target)e.target.scrollIntoView({block:'nearest',behavior:'smooth'})},180)});
  fillSuppliers();render();

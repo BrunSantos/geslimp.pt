@@ -1,4 +1,4 @@
-import {recurring,occurs,weekdayOf} from '../recurrence.js?v=89';
+import {recurring,occurs,weekdayOf} from '../recurrence.js?v=92';
 import {todayPortugal} from './client-dates.js';
 const date=d=>d.split('-').reverse().join('/');
 export function initServiceOccurrences(ctx){const $=s=>document.querySelector(s);let selected='',mode='',busy=false;document.body.insertAdjacentHTML('beforeend',`<dialog id="occurrence-dialog"><form id="occurrence-form"><h2 id="occurrence-title"></h2><p id="occurrence-description"></p><label for="occurrence-day">Data do serviço</label><input id="occurrence-day" type="date" required><p id="occurrence-history"></p><p id="occurrence-message" role="alert"></p><div class="actions"><button class="btn" id="occurrence-close" type="button">Cancelar</button><button class="btn primary" id="occurrence-save" type="submit"></button></div></form></dialog>`);
