@@ -156,6 +156,28 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
       allow delete: if false;
     }
+    function servicePhotoAccess(serviceId) {
+      let a = get(/databases/$(database)/documents/employeeAccess/$(request.auth.uid)).data;
+      let s = get(/databases/$(database)/documents/services/$(serviceId)).data;
+      return portalSelf(a.employeeId) && s.frequency == 'Pontual' && s.get('status','ativo') != 'cancelado'
+        && (s.get('employeeIds',null) != null ? s.employeeIds.hasAny([a.employeeId])
+          : (s.get('employeeId','') != '' ? s.employeeId == a.employeeId : assignedClient(s.clientId,a.employeeId)));
+    }
+    match /servicePhotos/{serviceId}/photos/{photoId} {
+      allow read: if isAdmin() || (request.auth != null && servicePhotoAccess(serviceId));
+      allow create: if request.auth != null && (isAdmin() || servicePhotoAccess(serviceId))
+        && exists(/databases/$(database)/documents/services/$(serviceId))
+        && get(/databases/$(database)/documents/services/$(serviceId)).data.frequency == 'Pontual'
+        && validId(photoId)
+        && request.resource.data.keys().hasOnly(['phase','dataUrl','createdBy','createdAt'])
+        && request.resource.data.keys().hasAll(['phase','dataUrl','createdBy','createdAt'])
+        && request.resource.data.phase in ['before','after']
+        && request.resource.data.dataUrl is string && request.resource.data.dataUrl.size() <= 350000
+        && request.resource.data.dataUrl.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')
+        && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time;
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
     match /employeeAdminLinks/{employeeId} {
       allow read: if isAdmin();
       allow create, update: if isAdmin()
