@@ -1,9 +1,9 @@
-import {createRescheduleStore} from './reschedule-store.js?v=88';
+import {createRescheduleStore} from './reschedule-store.js?v=89';
 import * as api from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
-import {unfinishedServices} from './unfinished-services.js?v=88';
-import {monthlyDues} from './billing-data.js?v=88';
-import {createBillingStore} from './billing-store.js?v=88';
-import {money,cents} from './stock-data.js?v=88';
+import {unfinishedServices} from './unfinished-services.js?v=89';
+import {monthlyDues} from './billing-data.js?v=89';
+import {createBillingStore} from './billing-store.js?v=89';
+import {money,cents} from './stock-data.js?v=89';
 import {todayPortugal} from './client-dates.js';
 const types={reschedules:'Pedidos de reagendamento',incidents:'Incidências nos serviços',stock:'Stock no mínimo ou esgotado',loans:'Equipamentos com devolução em atraso',services:'Serviços passados por concluir',monthly:'Mensalidades por receber',bookings:'Pedidos de agendamento pendentes',quotes:'Orçamentos a aguardar resposta da GesLimp'};
 let enabled={},settingsLoaded=false,rates=[];

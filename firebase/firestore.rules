@@ -652,6 +652,30 @@ service cloud.firestore {
           && next.qtyMilli == old.qtyMilli + m.qtyMilli && next.onLoanMilli == old.onLoanMilli - m.qtyMilli
           && next.inventoryValueCents == old.inventoryValueCents && next.lastSupplierId == old.lastSupplierId));
     }
+    match /kitTemplates/{id} {
+      allow read: if isAdmin();
+      allow create, update: if isAdmin() && id == 'default'
+        && request.resource.data.keys().hasOnly(['rows','updatedAt'])
+        && request.resource.data.rows is list && request.resource.data.rows.size() <= 30
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
+    match /employeeKits/{employeeId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && existsAfter(/databases/$(database)/documents/employees/$(employeeId))
+        && request.resource.data.keys().hasOnly(['rows','deliveredIds','createdAt','updatedAt'])
+        && request.resource.data.rows is list && request.resource.data.rows.size() <= 30
+        && request.resource.data.deliveredIds == [] && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['rows','deliveredIds','createdAt','updatedAt'])
+        && request.resource.data.rows is list && request.resource.data.rows.size() <= 30
+        && request.resource.data.deliveredIds is list && request.resource.data.deliveredIds.size() <= 30
+        && request.resource.data.deliveredIds.hasAll(resource.data.deliveredIds)
+        && (resource.data.deliveredIds.size() == 0 || request.resource.data.rows == resource.data.rows)
+        && request.resource.data.createdAt == resource.data.createdAt && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
     match /stockItems/{id} {
       allow read: if isAdmin();
       allow create: if isAdmin() && validId(id) && stockItemShape(request.resource.data) && request.resource.data.createdAt == request.time
