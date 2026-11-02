@@ -24,3 +24,7 @@
 .client-card>.client-actions.record-actions{flex:0 1 280px;min-width:0;width:280px}
 .client-actions.record-actions>.primary{flex:1 1 0;min-width:0}
 @media(max-width:850px){.client-card>.client-actions.record-actions{flex:1 1 100%;width:100%}}
+
+/* Nos serviços, o menu acompanha sempre a ação principal, mesmo no telemóvel. */
+.service-buttons.record-actions>.primary{flex:1 1 0;min-width:0}
+.service-buttons.record-actions>.record-menu{flex:0 0 46px}

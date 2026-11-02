@@ -38,6 +38,9 @@ function arrange() {
       card.querySelector(':scope > small')?.classList.add('record-share-help');
     }
     if (!quote && !stock && !client) {
+      // Mantém a ação principal e o menu lado a lado; o histórico surge depois.
+      const details = options.parentElement, history = row.querySelector(':scope > .muted');
+      if (history && details.nextElementSibling !== history) row.insertBefore(details, history);
       const recurring = Boolean(card.querySelector('[data-end-recurrence]'));
       const edit = options.querySelector('[data-edit-service]'), reschedule = options.querySelector('[data-service-reschedule]');
       if (edit) edit.textContent = recurring ? 'Editar recorrência' : 'Editar serviço';
