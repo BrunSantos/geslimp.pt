@@ -1,8 +1,8 @@
-import {quoteConversion} from './quote-conversion.js?v=103';
-import {createCapacityStore} from './capacity-store.js?v=103';
-import {recurring,slotKey,slotReserved,occurs,weekdayOf} from '../recurrence.js?v=103';
-import {liveSlots,shiftExpired} from '../shift-time.js?v=103';
-import {mergeOpenings} from './agenda-data.js?v=103';
+import {quoteConversion} from './quote-conversion.js?v=105';
+import {createCapacityStore} from './capacity-store.js?v=105';
+import {recurring,slotKey,slotReserved,occurs,weekdayOf} from '../recurrence.js?v=105';
+import {liveSlots,shiftExpired} from '../shift-time.js?v=105';
+import {mergeOpenings} from './agenda-data.js?v=105';
 import {serviceFromBooking} from './booking-service.js';
 import {validDate,todayPortugal} from './client-dates.js';
 // Operações atómicas: nunca substituímos toda a base de dados com uma cópia do navegador.

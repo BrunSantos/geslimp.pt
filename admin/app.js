@@ -1,29 +1,29 @@
-import {initMyServices} from './my-services.js?v=103';
-import {initServicePhotos} from '../service-photos.js?v=103';
-import {initSessionName} from './session-name.js?v=103';
-import {initNotifications} from './notifications.js?v=103';
-import {initUnfinishedServices} from './unfinished-services-ui.js?v=103';
-import {createServiceOccurrences} from './service-occurrences.js?v=103';
-import {initServiceOccurrences} from './service-occurrences-ui.js?v=103';
-import {initCapacityUI} from './capacity-ui.js?v=103';
-import {freeSeats,crewOf,shiftIndices} from '../capacity.js?v=103';
-import {recurring,occurs,recurringVisits,weekNames} from '../recurrence.js?v=103';
-import {initEmployeeProjections} from './employee-projections.js?v=103';
-import {initReportReset} from './report-reset.js?v=103';
-import {liveSlots,shiftExpired} from '../shift-time.js?v=103';
-import {initAgendaReport} from './agenda-report.js?v=103';
-import {bookingSlots} from './agenda-data.js?v=103';
-import {resetAdminNavigation} from './navigation-start.js?v=103';
-import {initStock} from './stock.js?v=103';
-import {initTeam} from './team.js?v=103';
-import {initQuotes} from './quotes.js?v=103';
+import {initMyServices} from './my-services.js?v=105';
+import {initServicePhotos} from '../service-photos.js?v=105';
+import {initSessionName} from './session-name.js?v=105';
+import {initNotifications} from './notifications.js?v=105';
+import {initUnfinishedServices} from './unfinished-services-ui.js?v=105';
+import {createServiceOccurrences} from './service-occurrences.js?v=105';
+import {initServiceOccurrences} from './service-occurrences-ui.js?v=105';
+import {initCapacityUI} from './capacity-ui.js?v=105';
+import {freeSeats,crewOf,shiftIndices} from '../capacity.js?v=105';
+import {recurring,occurs,recurringVisits,weekNames} from '../recurrence.js?v=105';
+import {initEmployeeProjections} from './employee-projections.js?v=105';
+import {initReportReset} from './report-reset.js?v=105';
+import {liveSlots,shiftExpired} from '../shift-time.js?v=105';
+import {initAgendaReport} from './agenda-report.js?v=105';
+import {bookingSlots} from './agenda-data.js?v=105';
+import {resetAdminNavigation} from './navigation-start.js?v=105';
+import {initStock} from './stock.js?v=105';
+import {initTeam} from './team.js?v=105';
+import {initQuotes} from './quotes.js?v=105';
 import {todayPortugal, validDate, isPremium} from './client-dates.js';
 import { createMapLinks } from './map-links.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
 import { getAuth, setPersistence, browserSessionPersistence, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, reauthenticateWithCredential, EmailAuthProvider, updatePassword } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import { getFirestore, collection, doc, onSnapshot, getDocFromServer, getDocsFromServer, query, where, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 import { firebaseConfig } from './firebase-config.js';
-import { createDataStore } from './data-store.js?v=103';
+import { createDataStore } from './data-store.js?v=105';
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 auth.languageCode = 'pt';
@@ -200,7 +200,7 @@ $('#services-close').onclick=()=>$('#services-modal').close();
 $('#service-cancel').onclick=()=>{$('#service-modal').close();openServices(serviceClientId)};
 $('#service-form').onsubmit=async event=>{
   event.preventDefault();
-  const service={id:editingServiceId,clientId:serviceClientId,title:$('#service-title').value.trim(),serviceType:$('#service-type').value,frequency:$('#service-frequency').value,...(['Semanal','Pontual'].includes($('#service-frequency').value)?{...($('#service-frequency').value==='Semanal'?{weekday:Number($('#service-weekday').value)}:{}),shift:$('#service-turn').value,employeeIds:[...document.querySelectorAll('[name="service-crew"]:checked')].map(e=>e.value)}:{}),startDate:$('#service-start').value,endDate:$('#service-end').value,status:$('#service-state').value,estimatedDuration:$('#service-duration').value.trim(),areas:$('#service-areas').value.trim(),notes:$('#service-notes').value.trim()};
+  const service={id:editingServiceId,clientId:serviceClientId,title:$('#service-title').value.trim(),serviceType:$('#service-type').value,frequency:$('#service-frequency').value,...(['Semanal','Quinzenal','Pontual'].includes($('#service-frequency').value)?{...(['Semanal','Quinzenal'].includes($('#service-frequency').value)?{weekday:Number($('#service-weekday').value)}:{}),shift:$('#service-turn').value,employeeIds:[...document.querySelectorAll('[name="service-crew"]:checked')].map(e=>e.value)}:{}),startDate:$('#service-start').value,endDate:$('#service-end').value,status:$('#service-state').value,estimatedDuration:$('#service-duration').value.trim(),areas:$('#service-areas').value.trim(),notes:$('#service-notes').value.trim()};
   if (!service.title || !validDate(service.startDate) || (service.endDate && (!validDate(service.endDate)||service.endDate<service.startDate))) { $('#service-form-status').textContent='Preenche o nome do serviço e uma data válida.';return; }
   const ok=await perform(()=>store.saveService(service,serviceQuote),'Serviço guardado na ficha do cliente.');
   if(ok){$('#service-modal').close();openServices(serviceClientId)}
@@ -364,7 +364,7 @@ $('#refresh-data').onclick = async () => {
 };
 
 function serviceStatusLabel(s){if(recurring(s)&&s.endDate&&s.endDate<todayPortugal())return 'Recorrência terminada';return ({ativo:'Ativo',concluido:'Concluído',cancelado:'Cancelado'})[s.status||'ativo']||'Ativo'}
-function syncServiceDates(){const weekly=$('#service-frequency').value==='Semanal',scheduled=weekly||$('#service-frequency').value==='Pontual';$('#service-recurring-fields').hidden=!scheduled;$('#service-weekday').parentElement.querySelector('label[for="service-weekday"]').hidden=!weekly;$('#service-weekday').hidden=!weekly;$('#service-weekday').required=weekly;$('#service-turn').required=scheduled;$('#service-turn option[value="Dia inteiro"]').disabled=weekly;if(weekly&&$('#service-turn').value==='Dia inteiro')$('#service-turn').value='';const single=$('#service-frequency').value==='Pontual';const end=$('#service-end'),noEnd=$('#service-no-end');if(!single&&end.dataset.single==='true'){noEnd.checked=true;end.value='';}end.dataset.single=String(single);$('#service-no-end-label').hidden=single;noEnd.disabled=single;end.min=$('#service-start').value;end.readOnly=single;end.disabled=!single&&noEnd.checked;if(single)end.value=$('#service-start').value;else if(noEnd.checked)end.value='';}
+function syncServiceDates(){const weekly=['Semanal','Quinzenal'].includes($('#service-frequency').value),scheduled=weekly||$('#service-frequency').value==='Pontual';$('#service-recurring-fields').hidden=!scheduled;$('#service-weekday').parentElement.querySelector('label[for="service-weekday"]').hidden=!weekly;$('#service-weekday').hidden=!weekly;$('#service-weekday').required=weekly;$('#service-turn').required=scheduled;$('#service-turn option[value="Dia inteiro"]').disabled=weekly;if(weekly&&$('#service-turn').value==='Dia inteiro')$('#service-turn').value='';const single=$('#service-frequency').value==='Pontual';const end=$('#service-end'),noEnd=$('#service-no-end');if(!single&&end.dataset.single==='true'){noEnd.checked=true;end.value='';}end.dataset.single=String(single);$('#service-no-end-label').hidden=single;noEnd.disabled=single;end.min=$('#service-start').value;end.readOnly=single;end.disabled=!single&&noEnd.checked;if(single)end.value=$('#service-start').value;else if(noEnd.checked)end.value='';}
 $('#service-no-end').addEventListener('change',syncServiceDates);
 $('#service-frequency').addEventListener('change',syncServiceDates);
 $('#service-start').addEventListener('change',syncServiceDates);

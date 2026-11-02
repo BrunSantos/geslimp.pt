@@ -1,22 +1,22 @@
-import {crewOf,shiftIndices,groupEntries,weeklyUsed,slotMap,slotArrays} from '../capacity.js?v=103';
-import {occurs,weekdayOf,slotKey} from '../recurrence.js?v=103';
+import {crewOf,shiftIndices,groupEntries,weeklyUsed,rowOccurs,slotMap,slotArrays} from '../capacity.js?v=105';
+import {occurs,weekdayOf,slotKey} from '../recurrence.js?v=105';
 import {todayPortugal,validDate} from './client-dates.js';
-import {shiftExpired} from '../shift-time.js?v=103';
+import {shiftExpired} from '../shift-time.js?v=105';
 export function createRescheduleStore(api,db,auth){const {doc,collection,runTransaction,serverTimestamp}=api;return {async decide(id,approve){const newRef=doc(collection(db,'services'));await runTransaction(db,async tx=>{
 const rr=doc(db,'serviceRescheduleRequests',id),request=await tx.get(rr),r=request.data();if(!r||r.status!=='pending')throw Error('Este pedido já foi tratado.');
 if(!approve){tx.update(rr,{status:'rejected',decidedBy:auth.currentUser.uid,decidedAt:serverTimestamp()});return;}
 if(!validDate(r.targetDay)||r.targetDay<todayPortugal()||shiftIndices(r.targetShift).some(i=>shiftExpired(r.targetDay,i)))throw Error('Escolhe um pedido com data e turno ainda disponíveis.');
-const sr=doc(db,'services',r.serviceId),ss=await tx.get(sr),s=ss.data();if(!s||s.status!=='ativo'||s.shift!==r.originalShift||(s.frequency==='Semanal'?!occurs(s,r.day):s.startDate!==r.day))throw Error('O serviço foi alterado. Recusa este pedido e confirma uma nova data.');
+const sr=doc(db,'services',r.serviceId),ss=await tx.get(sr),s=ss.data();if(!s||s.status!=='ativo'||s.shift!==r.originalShift||(['Semanal','Quinzenal'].includes(s.frequency)?!occurs(s,r.day):s.startDate!==r.day))throw Error('O serviço foi alterado. Recusa este pedido e confirma uma nova data.');
 const done=await tx.get(doc(db,'serviceCompletions',r.serviceId+'-'+r.day));if(done.exists())throw Error('Este serviço já foi concluído.');
 const client=await tx.get(doc(db,'clients',s.clientId)),people=crewOf(s,client.data());if(!people.length)throw Error('Atribui primeiro a equipa do serviço.');
 const sourceAvRef=doc(db,'availability',r.day),targetAvRef=doc(db,'availability',r.targetDay),sourceAv=await tx.get(sourceAvRef),targetAv=await tx.get(targetAvRef),team=await tx.get(doc(db,'teamDays',r.targetDay));if(!targetAv.data()?.capacity||!team.exists())throw Error('Define primeiro a equipa disponível na nova data.');
-const weekly=s.frequency==='Semanal',site=r.serviceId.startsWith('site-'),bookingId=site?r.serviceId.slice(5):'',targetId=weekly?newRef.id:r.serviceId,owner=(site?'b-'+bookingId:'s-'+targetId),reservation=site?bookingId:'service-'+targetId;
+const weekly=['Semanal','Quinzenal'].includes(s.frequency),site=r.serviceId.startsWith('site-'),bookingId=site?r.serviceId.slice(5):'',targetId=weekly?newRef.id:r.serviceId,owner=(site?'b-'+bookingId:'s-'+targetId),reservation=site?bookingId:'service-'+targetId;
 const groups=[];for(const i of [0,1,2]){const gs=await tx.get(doc(db,'recurringSlots',weekdayOf(r.targetDay)+'-'+i));groups.push({...gs.data(),key:weekdayOf(r.targetDay)+'-'+i});}
 let groupSnap;if(weekly)groupSnap=await tx.get(doc(db,'recurringSlots',slotKey(s)));
 let booking;if(site){booking=await tx.get(doc(db,'bookings',bookingId));if(!['pendente','confirmada'].includes(booking.data()?.status))throw Error('A marcação já terminou.');}
 const indices=shiftIndices(r.targetShift),newLocks=[],oldLocks=[];
 for(const emp of people){const employee=await tx.get(doc(db,'employees',emp));if(employee.data()?.status!=='ativo')throw Error('A equipa tem colaboradores inativos.');}
-for(const i of indices){if(people.some(emp=>!team.data().employeeSlots[i].includes(emp)))throw Error('A equipa não está disponível no turno pedido.');for(const row of groupEntries(groups[i])){if((row.excludedDays||[]).includes(r.targetDay)||r.targetDay<row.startDate||row.endDate&&r.targetDay>row.endDate||weekly&&row.serviceId===r.serviceId&&r.targetDay===r.day)continue;const other=await tx.get(doc(db,'services',row.serviceId));if(other.exists()){const c=await tx.get(doc(db,'clients',other.data().clientId));if(crewOf(other.data(),c.data()).some(emp=>people.includes(emp)))throw Error('Um colaborador já está ocupado nesse turno.');}}
+for(const i of indices){if(people.some(emp=>!team.data().employeeSlots[i].includes(emp)))throw Error('A equipa não está disponível no turno pedido.');for(const row of groupEntries(groups[i])){if(!rowOccurs(row,r.targetDay)||weekly&&row.serviceId===r.serviceId&&r.targetDay===r.day)continue;const other=await tx.get(doc(db,'services',row.serviceId));if(other.exists()){const c=await tx.get(doc(db,'clients',other.data().clientId));if(crewOf(other.data(),c.data()).some(emp=>people.includes(emp)))throw Error('Um colaborador já está ocupado nesse turno.');}}
 for(const emp of people){const ref=doc(db,'staffDaySlots',r.targetDay+'-'+i+'-'+emp),snap=await tx.get(ref);if(snap.exists()&&snap.data().owner!==owner)throw Error('Um colaborador já está ocupado nesse turno.');newLocks.push([ref,{owner,day:r.targetDay,index:i,employeeId:emp,startDate:r.targetDay,endDate:r.targetDay,updatedAt:serverTimestamp()}]);}}
 if(!weekly)for(const i of shiftIndices(s.shift))for(const emp of people){const ref=doc(db,'staffDaySlots',r.day+'-'+i+'-'+emp),snap=await tx.get(ref);if(snap.data()?.owner===owner)oldLocks.push(ref);}
 const target=targetAv.data(),reservations=slotArrays(target.reservations).map(a=>a.filter(v=>v!==reservation));for(const i of indices){const used=weeklyUsed(groups,r.targetDay,i,weekly&&r.targetDay===r.day?r.serviceId:'');if(reservations[i].length+used+people.length>target.capacity[i])throw Error('O turno pedido não tem capacidade livre.');reservations[i].push(...Array(people.length).fill(reservation));}

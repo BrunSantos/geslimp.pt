@@ -1,11 +1,11 @@
-import {initStockInvoices} from './stock-invoices.js?v=103';
-import {reportRecords} from './report-reset.js?v=103';
-import {initStockShopping} from './stock-shopping-ui.js?v=103';
-import {initStockProfit} from './stock-profit-ui.js?v=103';
+import {initStockInvoices} from './stock-invoices.js?v=105';
+import {reportRecords} from './report-reset.js?v=105';
+import {initStockShopping} from './stock-shopping-ui.js?v=105';
+import {initStockProfit} from './stock-profit-ui.js?v=105';
 import * as api from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
-import {supplierSeeds,categories,units,milli,cents,money,quantity,expenseReport} from './stock-data.js?v=103';
-import {createStockStore} from './stock-store.js?v=103';
-import {prepareTeamPhoto} from './team-photo.js?v=103';
+import {supplierSeeds,categories,units,milli,cents,money,quantity,expenseReport} from './stock-data.js?v=105';
+import {createStockStore} from './stock-store.js?v=105';
+import {prepareTeamPhoto} from './team-photo.js?v=105';
 import {todayPortugal,validDate} from './client-dates.js';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels={purchase:'Compra / entrada',issue:'Saída de consumíveis',loan:'Empréstimo',return:'Devolução'};

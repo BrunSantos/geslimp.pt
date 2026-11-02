@@ -82,7 +82,9 @@ service cloud.firestore {
         && d.reservations['1'] is list && d.reservations['1'].size() <= 100
         && d.reservations['2'] is list && d.reservations['2'].size() <= 100;
     }
-    function rowSeats(rows,i,day) { return rows.size() > i && day >= rows[i].startDate && (rows[i].endDate == '' || day <= rows[i].endDate) && !(day in rows[i].get('excludedDays',[])) ? rows[i].seats : 0; }
+    function dayStamp(day) { let p=day.split('-'); return timestamp.date(int(p[0]),int(p[1]),int(p[2])); }
+    function inFortnight(start,day) { return (dayStamp(day)-dayStamp(start)).seconds() % 1209600 < 604800; }
+    function rowSeats(rows,i,day) { return rows.size() > i && day >= rows[i].startDate && (rows[i].endDate == '' || day <= rows[i].endDate) && !(day in rows[i].get('excludedDays',[])) && (rows[i].get('frequency','Semanal') != 'Quinzenal' || inFortnight(rows[i].startDate,day)) ? rows[i].seats : 0; }
     function weeklySeats(day,index) {
       let key=string(weekOf(day))+'-'+string(index);
       let d=exists(/databases/$(database)/documents/recurringSlots/$(key)) ? get(/databases/$(database)/documents/recurringSlots/$(key)).data : {};
@@ -126,7 +128,7 @@ service cloud.firestore {
     function freeOpening(day,slots) { return (!slots[0] || recurringFree(day,0)) && (!slots[1] || recurringFree(day,1)) && (!slots[2] || recurringFree(day,2)); }
     function serviceSlot(d) { return string(d.weekday) + '-' + string(d.shift == 'Manhã' ? 0 : d.shift == 'Tarde' ? 1 : 2); }
     function serviceLock(id,d) {
-      return d.frequency != 'Semanal' || d.get('status','ativo') != 'ativo'
+      return !(d.frequency in ['Semanal','Quinzenal']) || d.get('status','ativo') != 'ativo'
         || (getAfter(/databases/$(database)/documents/recurringSlots/$(serviceSlot(d))).data.get('serviceId','') == id || getAfter(/databases/$(database)/documents/recurringSlots/$(serviceSlot(d))).data.get('serviceIds',[]).hasAny([id]));
     }
     function visitorCanBook(data) {
@@ -177,7 +179,7 @@ service cloud.firestore {
       let parts = day.split('-');
       return validDay(day) && !(day in s.get('excludedDays',[])) && day >= s.startDate
         && (s.get('endDate','') == '' || day <= s.endDate)
-        && (s.frequency == 'Pontual' ? day == s.startDate : s.frequency == 'Semanal' && weekOf(day) == s.weekday)
+        && (s.frequency == 'Pontual' ? day == s.startDate : s.frequency in ['Semanal','Quinzenal'] && weekOf(day) == s.weekday && (s.frequency != 'Quinzenal' || inFortnight(s.startDate,day)))
         && timestamp.date(int(parts[0]),int(parts[1]),int(parts[2])) <= request.time + duration.value(1,'h');
     }
     function workShape(d,sid,day,uid) {
@@ -222,7 +224,7 @@ service cloud.firestore {
         && request.resource.data.clientId == get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.clientId
         && get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.get('status','ativo') == 'ativo'
         && !(request.resource.data.day in get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.get('excludedDays',[]))
-        && (get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.frequency == 'Pontual' ? request.resource.data.day == get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.startDate : request.resource.data.day >= get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.startDate && (get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.get('endDate','') == '' || request.resource.data.day <= get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.endDate) && weekOf(request.resource.data.day) == get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.weekday)
+        && (get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.frequency == 'Pontual' ? request.resource.data.day == get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.startDate : request.resource.data.day >= get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.startDate && (get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.get('endDate','') == '' || request.resource.data.day <= get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.endDate) && weekOf(request.resource.data.day) == get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.weekday && (get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.frequency != 'Quinzenal' || inFortnight(get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.startDate,request.resource.data.day)))
         && validDay(request.resource.data.day) && validDay(request.resource.data.targetDay)
         && timestamp.date(int(request.resource.data.targetDay.split('-')[0]),int(request.resource.data.targetDay.split('-')[1]),int(request.resource.data.targetDay.split('-')[2])) + duration.value(25,'h') > request.time
         && request.resource.data.originalShift == get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.shift
@@ -384,7 +386,7 @@ service cloud.firestore {
         && (!('shift' in data) || data.shift in ['Manhã','Tarde','Noite','Dia inteiro'])
         && data.title is string && data.title.size() > 0 && data.title.size() <= 150
         && data.serviceType in ['Casa completa','Divisões específicas da casa','Condomínio','Escritório','Espaço comercial','Limpeza pós-obra','Outra limpeza']
-        && (data.frequency != 'Semanal' || data.get('status','ativo') != 'ativo' || (data.weekday is int && data.weekday >= 1 && data.weekday <= 7 && data.shift in ['Manhã','Tarde','Noite']))
+        && (!(data.frequency in ['Semanal','Quinzenal']) || data.get('status','ativo') != 'ativo' || (data.weekday is int && data.weekday >= 1 && data.weekday <= 7 && data.shift in ['Manhã','Tarde','Noite']))
         && data.frequency in ['Pontual','Diário','Semanal','Quinzenal','Mensal','Outro']
         && data.startDate is string && validDay(data.startDate)
         && (!('status' in data) || data.status in ['ativo','concluido','cancelado'])
@@ -414,7 +416,7 @@ service cloud.firestore {
       return d.keys().hasOnly(['serviceId','clientId','day','shift','employeeIds','status','createdAt'])
         && d.keys().hasAll(['serviceId','clientId','day','shift','employeeIds','status','createdAt'])
         && validId(d.serviceId) && id == d.serviceId + '-' + d.day && validDay(d.day)
-        && s.frequency == 'Semanal' && s.get('status','ativo') != 'cancelado'
+        && s.frequency in ['Semanal','Quinzenal'] && (s.frequency != 'Quinzenal' || inFortnight(s.startDate,d.day)) && s.get('status','ativo') != 'cancelado'
         && s.clientId == d.clientId && s.shift == d.shift && weekOf(d.day) == s.weekday
         && d.day >= s.startDate && (s.get('endDate','') == '' || d.day <= s.endDate)
         && timestamp.date(int(parts[0]),int(parts[1]),int(parts[2])) <= request.time + duration.value(1,'h')
