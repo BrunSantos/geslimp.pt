@@ -1,5 +1,5 @@
-import {rateForService} from './notifications.js?v=102';
-import {cents,money,clientProfitReport} from './stock-data.js?v=102';
+import {rateForService} from './notifications.js?v=103';
+import {cents,money,clientProfitReport} from './stock-data.js?v=103';
 import {todayPortugal} from './client-dates.js';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function initStockProfit(ctx,store,getData){

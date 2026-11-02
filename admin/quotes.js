@@ -1,6 +1,6 @@
-import {monthlyQuote,quoteTotalLabel,quotePaymentNote,quoteAddressLabel} from '../quote-pricing.js?v=102';
-import {deleteQuoteHistory,quoteFamily} from './quote-delete.js?v=102';
-import {initQuoteLinks} from './quote-links.js?v=102';
+import {monthlyQuote,quoteTotalLabel,quotePaymentNote,quoteAddressLabel} from '../quote-pricing.js?v=103';
+import {deleteQuoteHistory,quoteFamily} from './quote-delete.js?v=103';
+import {initQuoteLinks} from './quote-links.js?v=103';
 import {collection,doc,onSnapshot,runTransaction,serverTimestamp} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 import {todayPortugal} from './client-dates.js';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
