@@ -1,4 +1,4 @@
-import {billingKey,validMonth,readBillingBalance,writeBillingBalance} from './billing-data.js?v=108';
+import {billingKey,validMonth,readBillingBalance,writeBillingBalance} from './billing-data.js?v=109';
 import {todayPortugal,validDate} from './client-dates.js';
 export function createBillingStore(api,db){return {
  async saveRate(serviceId,month,amountCents){if(!validMonth(month)||!Number.isSafeInteger(amountCents)||amountCents<1||amountCents>100000000)throw Error('Indica um valor superior a zero e o mês de início.');await api.runTransaction(db,async tx=>{const s=await tx.get(api.doc(db,'services',serviceId));if(!s.exists()||month<s.data().startDate.slice(0,7))throw Error('Escolhe um mês igual ou posterior ao início do serviço.');tx.set(api.doc(db,'serviceRates',billingKey(serviceId,month)),{serviceId,month,mode:s.data().frequency==='Pontual'?'once':'monthly',amountCents,updatedAt:api.serverTimestamp()});});},

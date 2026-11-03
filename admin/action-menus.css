@@ -28,3 +28,5 @@
 /* Nos serviços, o menu acompanha sempre a ação principal, mesmo no telemóvel. */
 .service-buttons.record-actions>.primary{flex:1 1 0;min-width:0}
 .service-buttons.record-actions>.record-menu{flex:0 0 46px}
+
+.client-actions.record-actions>[data-services-client]{order:0}.client-actions.record-actions>.record-menu{order:1}.client-actions.record-actions>.client-service-count{order:2;flex:0 0 100%;color:#627787;font-size:12px;text-align:left;margin-top:-3px}
