@@ -1,0 +1,36 @@
+import {crewOf} from '../capacity.js?v=111';
+import {recurringVisits} from '../recurrence.js?v=111';
+import {reportAgenda} from './report-reset.js?v=111';
+import {collection,onSnapshot} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
+import {agendaReport,agendaShifts} from './agenda-data.js?v=111';
+import {todayPortugal} from './client-dates.js';
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const percent=n=>new Intl.NumberFormat('pt-PT',{maximumFractionDigits:1}).format(n)+'%';
+const names=values=>values.length===3?'Dia inteiro':values.map(i=>agendaShifts[i]).join(', ')||'—';
+export function initAgendaReport(ctx){const $=s=>document.querySelector(s);let history={},uid='',stop=null,generation=0;
+ $('#agenda-from').value=todayPortugal().slice(0,7)+'-01';$('#agenda-to').value=todayPortugal();
+ function chart(rows){return rows.map(r=>`<div class="agenda-chart-row"><span>${esc(r.name)}</span><div class="agenda-chart-track"><span style="width:${Math.min(100,r.rate)}%"></span></div><strong>${percent(r.rate)}</strong><small>${r.occupied} ocupados / ${r.opened} abertos</small></div>`).join('')}
+ function comparison(rows){return '<div class="agenda-table-scroll"><table class="agenda-table"><thead><tr><th>Dia / turno</th><th>Turnos abertos</th><th>Turnos escolhidos</th><th>Turnos ocupados</th><th>Turnos realizados</th><th>Ocupação</th></tr></thead><tbody>'+rows.map(r=>`<tr><td>${esc(r.name)}</td><td>${r.opened}</td><td>${r.requested}</td><td>${r.occupied}</td><td>${r.realized}</td><td>${percent(r.rate)}</td></tr>`).join('')+'</tbody></table></div>'}
+ function renderUpcoming(s){
+ const today=todayPortugal(),end=new Date(today+'T12:00:00Z');
+ end.setUTCDate(end.getUTCDate()+29);
+ const visits=recurringVisits(s.services,s.clients,today,end.toISOString().slice(0,10),s.completions)
+  .filter(v=>v.recurring&&v.status==='confirmada').sort((a,b)=>a.day.localeCompare(b.day)||agendaShifts.indexOf(a.shift)-agendaShifts.indexOf(b.shift)||a.name.localeCompare(b.name,'pt'));
+ $('#agenda-upcoming').innerHTML=visits.length?'<div class="agenda-table-scroll"><table class="agenda-table"><thead><tr><th>Data</th><th>Turno</th><th>Cliente</th><th>Equipa</th></tr></thead><tbody>'+visits.map(v=>{
+ const service=s.services.find(x=>x.id===v.serviceId);
+ const team=crewOf(service||v,s.clients.find(c=>c.id===v.clientId)).map(id=>s.employees.find(e=>e.id===id)?.name||'Colaborador').join(', ');
+ return `<tr><td>${v.day.split('-').reverse().join('/')}</td><td>${esc(v.shift)}</td><td>${esc(v.name)}</td><td>${esc(team||'Sem equipa atribuída')}</td></tr>`;
+ }).join('')+'</tbody></table></div>':'<p class="muted">Não há recorrências previstas para os próximos 30 dias.</p>';
+ }
+ function render(){const s=ctx.getState();renderUpcoming(s);const from=$('#agenda-from').value,to=$('#agenda-to').value;if(from&&to&&from>to){$('#agenda-message').textContent='A data final deve ser igual ou posterior à inicial.';return}const r=agendaReport({...reportAgenda({...s,bookings:[...s.bookings,...recurringVisits(s.services,s.clients,from||todayPortugal().slice(0,7)+'-01',to||todayPortugal(),s.completions)]},history),from,to});$('#agenda-message').textContent='';
+ $('#agenda-opened-days').textContent=r.openedDays;$('#agenda-opened-slots').textContent=r.opened;$('#agenda-occupied-days').textContent=r.occupiedDays;$('#agenda-occupied-slots').textContent=r.occupied;$('#agenda-realized').textContent=r.realized;$('#agenda-rate').textContent=percent(r.rate);$('#agenda-sources').textContent=`Marcações confirmadas ou concluídas: ${r.site} do site · ${r.manual} manuais / anteriores. Dias inteiros: ${r.fullDays}.`;
+ $('#agenda-weekday-chart').innerHTML=chart(r.weekday);$('#agenda-shift-chart').innerHTML=chart(r.shift);$('#agenda-weekday-table').innerHTML=comparison(r.weekday);$('#agenda-shift-table').innerHTML=comparison(r.shift);
+ const best=rows=>{const max=Math.max(0,...rows.filter(x=>x.opened).map(x=>x.rate));return max?rows.filter(x=>x.opened&&Math.abs(x.rate-max)<.00001).map(x=>x.name+' ('+percent(x.rate)+')').join(', '):'Ainda sem ocupação confirmada.'};
+ $('#agenda-best-day').textContent=best(r.weekday);$('#agenda-best-shift').textContent=best(r.shift);const most=rows=>{const max=Math.max(0,...rows.map(x=>x.requested));return max?rows.filter(x=>x.requested===max).map(x=>x.name+' ('+x.requested+' turnos escolhidos / '+x.opened+' abertos)').join(', '):'Ainda sem escolhas registadas.'};const dayMax=Math.max(0,...r.weekday.map(x=>x.requestedBookings));$('#agenda-most-requested-day').textContent=dayMax?r.weekday.filter(x=>x.requestedBookings===dayMax).map(x=>x.name+' ('+x.requestedBookings+' marcações / '+x.openedDays+' dias abertos)').join(', '):'Ainda sem escolhas registadas.';$('#agenda-most-requested-shift').textContent=most(r.shift);
+ $('#agenda-day-detail').innerHTML='<div class="agenda-table-scroll"><table class="agenda-table"><thead><tr><th>Data</th><th>Dia da semana</th><th>Turnos abertos alguma vez</th><th>Ocupação confirmada</th><th>Realizados</th><th>Pendentes</th><th>Origem das marcações</th></tr></thead><tbody>'+r.rows.map(row=>`<tr><td>${row.day.split('-').reverse().join('/')}</td><td>${esc(r.weekday[row.weekday].name)}</td><td>${esc(names(row.opened.map((open,i)=>open?i:-1).filter(i=>i>=0)))}</td><td>${esc(names(row.occupied))}</td><td>${esc(names(row.realized))}</td><td>${esc(names(row.pending))}</td><td>Site: ${row.siteRequests} · Manual: ${row.manualRequests}</td></tr>`).join('')+'</tbody></table></div>';
+ }
+ document.addEventListener('geslimp-report-reset',render);
+ for(const id of ['#agenda-from','#agenda-to'])$(id).onchange=render;
+ $('#agenda-this-month').onclick=()=>{$('#agenda-from').value=todayPortugal().slice(0,7)+'-01';$('#agenda-to').value=todayPortugal();render()};
+ setInterval(()=>{const next=ctx.ready()?ctx.auth.currentUser?.uid||'':'';if(next===uid)return;uid=next;const token=++generation;stop?.();history={};render();if(next)stop=onSnapshot(collection(ctx.db,'availabilityHistory'),snap=>{if(token!==generation)return;history=Object.fromEntries(snap.docs.map(d=>[d.id,d.data()]));$('#agenda-history-message').textContent='';render()},error=>{if(token!==generation)return;$('#agenda-history-message').textContent=error.code==='permission-denied'?'Publica as regras do Firebase da versão 49 para guardar e consultar o histórico de aberturas.':'Não foi possível carregar o histórico de aberturas.'})},800);
+ render();return {render};}

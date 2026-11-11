@@ -1,0 +1,5 @@
+export function shoppingRows(items,shops){
+ const names=new Map(shops.map(s=>[s.id,s.name]));
+ return items.filter(i=>!i.archived).map(i=>{const existing=i.qtyMilli+(i.kind==='equipment'?(i.onLoanMilli||0):0);const target=i.targetQtyMilli;const configured=Number.isSafeInteger(target)&&target>i.minQtyMilli;const supplierId=i.preferredSupplierId||i.lastSupplierId||'';return {...i,existing,configured,buyQtyMilli:configured?Math.max(0,target-existing):0,supplierId,supplierName:names.get(supplierId)||'Loja por definir'};}).filter(i=>i.existing<=i.minQtyMilli).sort((a,b)=>a.supplierName.localeCompare(b.supplierName,'pt')||a.name.localeCompare(b.name,'pt'));
+}
+export function shoppingMessage(rows,format){const ready=rows.filter(i=>i.configured&&i.buyQtyMilli>0);if(!ready.length)return '';const groups=new Map();for(const i of ready){if(!groups.has(i.supplierName))groups.set(i.supplierName,[]);groups.get(i.supplierName).push(i);}return 'GesLimp — Lista de compras\n\n'+[...groups].map(([shop,items])=>shop+'\n'+items.map(i=>'• '+i.name+(i.brand?' ('+i.brand+')':'')+' — '+format(i.buyQtyMilli)+' '+i.unit).join('\n')).join('\n\n');}
