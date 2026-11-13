@@ -1,5 +1,5 @@
 import {serviceMaps} from '../service-maps.js?v=115';
-import {initRescheduleUI,rescheduleButton} from '../service-reschedule.js?v=116';
+import {initRescheduleUI,rescheduleButton} from '../service-reschedule.js?v=126';
 import * as api from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 import {crewOf} from '../capacity.js?v=111';
 import {occurs} from '../recurrence.js?v=111';
