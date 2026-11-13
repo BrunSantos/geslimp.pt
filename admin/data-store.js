@@ -1,5 +1,6 @@
+import {recordReschedule} from './service-change-history.js?v=133';
 import {quoteConversion} from './quote-conversion.js?v=111';
-import {createCapacityStore} from './capacity-store.js?v=129';
+import {createCapacityStore} from './capacity-store.js?v=133';
 import {recurring,slotKey,slotReserved,occurs,weekdayOf} from '../recurrence.js?v=111';
 import {liveSlots,shiftExpired} from '../shift-time.js?v=111';
 import {mergeOpenings} from './agenda-data.js?v=111';
@@ -82,7 +83,7 @@ export function createDataStore(api, db) {
       });
     },
     async saveService(service,conversion=null) {
-      const {id, ...fields} = service;
+      const {id,rescheduleReason, ...fields} = service;
       if(!validDate(fields.startDate)|| (fields.endDate && (!validDate(fields.endDate)||fields.endDate<fields.startDate))) throw Error('Indica datas válidas para o serviço.');
       fields.status=fields.status||'ativo';fields.endDate=fields.frequency==='Pontual'?fields.startDate:(fields.endDate||'');
       if(fields.frequency==='Semanal'&&fields.status==='concluido'){if(fields.startDate>todayPortugal())throw Error('Para terminar um serviço que ainda não começou, usa Cancelar.');if(!fields.endDate||fields.endDate>todayPortugal())fields.endDate=todayPortugal();}
@@ -104,7 +105,7 @@ export function createDataStore(api, db) {
         commitQuote();
         if(oldKey&&oldKey!==newKey&&oldLock?.data()?.serviceId===ref.id)tx.delete(doc(db,'recurringSlots',oldKey));
         if(newKey)tx.set(doc(db,'recurringSlots',newKey),{serviceId:ref.id,weekday:fields.weekday,shift:fields.shift,startDate:fields.startDate,endDate:fields.endDate||'',updatedAt:serverTimestamp()});
-        tx.set(ref,{...(existing.data()?.employeeId!==undefined?{employeeId:existing.data().employeeId}:{}),...fields,createdAt:existing.exists() ? existing.data().createdAt : serverTimestamp(),updatedAt:serverTimestamp()});
+        if(rescheduleReason)recordReschedule(tx,db,ref.id,existing.data()||{},fields,rescheduleReason);tx.set(ref,{...(existing.data()?.employeeId!==undefined?{employeeId:existing.data().employeeId}:{}),...fields,createdAt:existing.exists() ? existing.data().createdAt : serverTimestamp(),updatedAt:serverTimestamp()});
       });
       return ref.id;
     },

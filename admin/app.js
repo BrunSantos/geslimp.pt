@@ -1,11 +1,12 @@
+import {initServiceChangeHistory} from './service-change-history.js?v=133';
 import {initCalendarRefresh} from './calendar-refresh.js?v=122';
 import {activityPlaceholder,initServiceActivity} from './service-activity.js?v=121';
 import {initClientMap} from './client-map.js?v=111';
-import {initMyServices} from './my-services.js?v=131';
+import {initMyServices} from './my-services.js?v=133';
 import {initServicePhotos} from '../service-photos.js?v=131';
 import {initSessionName} from './session-name.js?v=111';
-import {initNotifications} from './notifications.js?v=131';
-import {initUnfinishedServices} from './unfinished-services-ui.js?v=131';
+import {initNotifications} from './notifications.js?v=133';
+import {initUnfinishedServices} from './unfinished-services-ui.js?v=133';
 import {createServiceOccurrences} from './service-occurrences.js?v=111';
 import {initServiceOccurrences} from './service-occurrences-ui.js?v=111';
 import {initCapacityUI} from './capacity-ui.js?v=114';
@@ -17,7 +18,7 @@ import {liveSlots,shiftExpired} from '../shift-time.js?v=111';
 import {initAgendaReport} from './agenda-report.js?v=131';
 import {bookingSlots} from './agenda-data.js?v=111';
 import {resetAdminNavigation} from './navigation-start.js?v=111';
-import {initStock} from './stock.js?v=131';
+import {initStock} from './stock.js?v=133';
 import {initTeam} from './team.js?v=131';
 import {initQuotes} from './quotes.js?v=131';
 import {todayPortugal, validDate, isPremium} from './client-dates.js';
@@ -26,11 +27,12 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.19.0/fireba
 import { getAuth, setPersistence, browserSessionPersistence, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, reauthenticateWithCredential, EmailAuthProvider, updatePassword } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import { getFirestore, collection, doc, onSnapshot, getDocFromServer, getDocsFromServer, query, where, runTransaction, serverTimestamp } from '../firestore-feedback.js?v=131';
 import { firebaseConfig } from './firebase-config.js';
-import { createDataStore } from './data-store.js?v=129';
+import { createDataStore } from './data-store.js?v=133';
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 auth.languageCode = 'pt';
 const db = getFirestore(app);
+initServiceChangeHistory(db);
 const store = createDataStore({collection, doc, runTransaction, serverTimestamp, getDocFromServer, getDocsFromServer, query, where}, db);
 let state = {days: {}, dayData:{},teamDays:{},employees:[],recurringGroups:[], bookings: [], clients: [], services: [], completions: []};
 let dayLocks = {};
@@ -173,7 +175,7 @@ function renderServiceList() {
   if (!client) return;
   $('#services-client-name').textContent = client.name;
   const services = state.services.filter(s=>s.clientId===client.id).sort((a,b)=>(b.startDate||'').localeCompare(a.startDate||''));
-  $('#services-list').innerHTML = services.length ? services.map(s=>`<article class="service-record"><div class="head"><strong>${escapeHtml(s.title)}</strong><button class="btn" data-edit-service="${escapeHtml(s.id)}">Editar</button></div><span class="service-frequency">${escapeHtml(s.frequency)}${recurring(s)?' · '+weekNames[s.weekday-1]+' · '+escapeHtml(s.shift):''} · ${serviceStatusLabel(s)}</span><div class="muted">${escapeHtml(s.serviceType)}<br>Início: ${escapeHtml(s.startDate.split('-').reverse().join('/'))}${(s.endDate||s.frequency==='Pontual')?'<br>Término: '+escapeHtml((s.endDate||s.startDate).split('-').reverse().join('/')):'<br>Sem data de término'}${s.estimatedDuration?'<br>Duração prevista: '+escapeHtml(s.estimatedDuration):''}${s.areas?'<br>Áreas e tarefas: '+escapeHtml(s.areas):''}${s.notes?'<br>Observações: '+escapeHtml(s.notes):''}</div><div class="service-buttons">${(s.status||'ativo')==='ativo'?`${recurring(s)?`<button class="btn" data-occurrence-service="${escapeHtml(s.id)}">Concluir serviço</button><button class="btn" data-end-recurrence="${escapeHtml(s.id)}">Terminar recorrência</button>`:`<button class="btn" data-service-complete="${escapeHtml(s.id)}">Concluir serviço</button>`}<button class="btn" data-service-reschedule="${escapeHtml(s.id)}">Reagendar</button><button class="btn danger" data-service-cancel="${escapeHtml(s.id)}">Cancelar serviço</button>`:''}${recurring(s)&&s.status==='concluido'?`<button class="btn" data-occurrence-service="${escapeHtml(s.id)}">Concluir serviço de uma data anterior</button>`:''}${state.completions.filter(c=>c.serviceId===s.id).length?`<span class="muted">${state.completions.filter(c=>c.serviceId===s.id).length} serviços concluídos</span>`:''}${s.status==='cancelado'?`<button class="btn danger" data-service-delete="${escapeHtml(s.id)}">Apagar serviço</button>`:''}</div></article>`).join('') : '<div class="empty">Ainda não há serviços adicionados a esta ficha.</div>';
+  $('#services-list').innerHTML = services.length ? services.map(s=>`<article class="service-record"><div class="head"><strong>${escapeHtml(s.title)}</strong><button class="btn" data-edit-service="${escapeHtml(s.id)}">Editar</button></div><span class="service-frequency">${escapeHtml(s.frequency)}${recurring(s)?' · '+weekNames[s.weekday-1]+' · '+escapeHtml(s.shift):''} · ${serviceStatusLabel(s)}</span><div class="muted">${escapeHtml(s.serviceType)}<br>Início: ${escapeHtml(s.startDate.split('-').reverse().join('/'))}${(s.endDate||s.frequency==='Pontual')?'<br>Término: '+escapeHtml((s.endDate||s.startDate).split('-').reverse().join('/')):'<br>Sem data de término'}${s.estimatedDuration?'<br>Duração prevista: '+escapeHtml(s.estimatedDuration):''}${s.areas?'<br>Áreas e tarefas: '+escapeHtml(s.areas):''}${s.notes?'<br>Observações: '+escapeHtml(s.notes):''}</div><div class="service-buttons"><button type="button" class="btn" data-service-change-history="${escapeHtml(s.id)}">Histórico de reagendamentos</button>${(s.status||'ativo')==='ativo'?`${recurring(s)?`<button class="btn" data-occurrence-service="${escapeHtml(s.id)}">Concluir serviço</button><button class="btn" data-end-recurrence="${escapeHtml(s.id)}">Terminar recorrência</button>`:`<button class="btn" data-service-complete="${escapeHtml(s.id)}">Concluir serviço</button>`}<button class="btn" data-service-reschedule="${escapeHtml(s.id)}">Reagendar</button><button class="btn danger" data-service-cancel="${escapeHtml(s.id)}">Cancelar serviço</button>`:''}${recurring(s)&&s.status==='concluido'?`<button class="btn" data-occurrence-service="${escapeHtml(s.id)}">Concluir serviço de uma data anterior</button>`:''}${state.completions.filter(c=>c.serviceId===s.id).length?`<span class="muted">${state.completions.filter(c=>c.serviceId===s.id).length} serviços concluídos</span>`:''}${s.status==='cancelado'?`<button class="btn danger" data-service-delete="${escapeHtml(s.id)}">Apagar serviço</button>`:''}</div></article>`).join('') : '<div class="empty">Ainda não há serviços adicionados a esta ficha.</div>';
   $('#legacy-service').hidden = Boolean(services.length || !client.service);
   $('#legacy-service').textContent = client.service ? 'Informação anterior: '+client.service+(client.serviceDetails?' · '+client.serviceDetails:'')+'. Usa “Adicionar serviço” para a organizar numa ficha de trabalho.' : '';
   document.dispatchEvent(new Event('geslimp-service-list'));$('#services-list').querySelectorAll('[data-edit-service]').forEach(button=>button.onclick=()=>openServiceForm(state.services.find(s=>s.id===button.dataset.editService)));
@@ -184,7 +186,7 @@ function openServiceForm(service) {
   if (!client) return;
   editingServiceId = service?.id || null;
   const hasServices=state.services.some(s=>s.clientId===client.id);
-  $('#service-form').reset();
+  $('#service-form').reset();$('#service-reschedule-reason-field').hidden=true;$('#service-reschedule-reason').required=false;
   $('#service-form-status').textContent='';
   $('#service-heading').textContent = service ? 'Editar serviço' : 'Adicionar serviço';
   $('#service-title').value=service?.title || (!hasServices?client.service:'') || '';
@@ -211,6 +213,8 @@ $('#service-cancel').onclick=()=>{$('#service-modal').close();openServices(servi
 $('#service-form').onsubmit=async event=>{
   event.preventDefault();
   const service={id:editingServiceId,clientId:serviceClientId,title:$('#service-title').value.trim(),serviceType:$('#service-type').value,frequency:$('#service-frequency').value,...(['Semanal','Quinzenal','Pontual'].includes($('#service-frequency').value)?{...(['Semanal','Quinzenal'].includes($('#service-frequency').value)?{weekday:Number($('#service-weekday').value)}:{}),shift:$('#service-turn').value,employeeIds:[...document.querySelectorAll('[name="service-crew"]:checked')].map(e=>e.value)}:{}),startDate:$('#service-start').value,endDate:$('#service-end').value,status:$('#service-state').value,estimatedDuration:$('#service-duration').value.trim(),areas:$('#service-areas').value.trim(),notes:$('#service-notes').value.trim()};
+  const previousService=state.services.find(s=>s.id===editingServiceId);if(previousService&&(previousService.startDate!==service.startDate||previousService.shift!==service.shift||previousService.weekday!==service.weekday)){$('#service-reschedule-reason-field').hidden=false;$('#service-reschedule-reason').required=true;}
+  if(!$('#service-reschedule-reason-field').hidden){const reason=$('#service-reschedule-reason').value.trim();if(!reason){$('#service-form-status').textContent='Indica o motivo do reagendamento.';$('#service-reschedule-reason').focus();return;}service.rescheduleReason=reason;service.notes=[service.notes,'Reagendamento: '+reason].filter(Boolean).join('\n');if(service.notes.length>5000){$('#service-form-status').textContent='O motivo e as observações excedem 5000 caracteres.';return;}}
   if (!service.title || !validDate(service.startDate) || (service.endDate && (!validDate(service.endDate)||service.endDate<service.startDate))) { $('#service-form-status').textContent='Preenche o nome do serviço e uma data válida.';return; }
   const ok=await perform(()=>store.saveService(service,serviceQuote),'Serviço guardado na ficha do cliente.');
   if(ok){$('#service-modal').close();openServices(serviceClientId)}
@@ -393,7 +397,7 @@ document.addEventListener('click',async event=>{
  const id=b.dataset.serviceComplete||b.dataset.serviceReschedule||b.dataset.serviceCancel||b.dataset.serviceDelete;
  const service=state.services.find(s=>s.id===id);if(!service)return;
  if(b.dataset.serviceComplete&&recurring(service)){occurrenceUI.open(id,'complete');return;}
- if(b.dataset.serviceReschedule){serviceClientId=service.clientId;openServiceForm(service);$('#service-heading').textContent=recurring(service)?'Reagendar recorrência':'Reagendar serviço';$('#service-start').min=todayPortugal();$('#service-state').value='ativo';$('#service-start').focus();return;}
+ if(b.dataset.serviceReschedule){serviceClientId=service.clientId;openServiceForm(service);$('#service-heading').textContent=recurring(service)?'Reagendar recorrência':'Reagendar serviço';$('#service-reschedule-reason-field').hidden=false;$('#service-reschedule-reason').required=true;$('#service-start').min=todayPortugal();$('#service-state').value='ativo';$('#service-start').focus();return;}
  if(b.dataset.serviceDelete){if(confirm('Apagar definitivamente este serviço cancelado?'))await perform(()=>store.deleteCancelledService(id),'Serviço apagado.');return;}
  const status=b.dataset.serviceComplete?'concluido':'cancelado';
  if(confirm(status==='concluido'?(recurring(service)?'Concluir este serviço semanal e terminar as próximas visitas?':'Marcar este serviço como concluído?'):'Cancelar este serviço?'))await perform(()=>store.saveService({...service,status,endDate:service.frequency==='Pontual'?service.startDate:(recurring(service)&&(!service.endDate||service.endDate>todayPortugal())?todayPortugal():(service.endDate||todayPortugal()))}),'Estado do serviço atualizado.');

@@ -949,6 +949,18 @@ service cloud.firestore {
         && request.resource.data.resetBy == request.auth.uid;
       allow delete: if false;
     }
+    match /services/{serviceId}/changeHistory/{entryId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly(['kind','before','after','reason','actorUid','actorName','createdAt','status','requestId','resultServiceId'])
+        && request.resource.data.kind == 'reschedule'
+        && request.resource.data.reason is string && request.resource.data.reason.size() > 0 && request.resource.data.reason.size() <= 5000
+        && request.resource.data.before is map && request.resource.data.after is map
+        && request.resource.data.actorUid == request.auth.uid
+        && request.resource.data.actorName is string
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
     match /{document=**} { allow read, write: if false; }
   }
 }

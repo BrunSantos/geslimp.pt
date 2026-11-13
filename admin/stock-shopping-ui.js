@@ -1,4 +1,4 @@
-import {notificationEnabled} from './notifications.js?v=131';
+import {notificationEnabled} from './notifications.js?v=133';
 import {shoppingRows,shoppingMessage} from './stock-shopping-data.js?v=111';
 export function initStockShopping({quantity,esc,openItem}){
  const $=s=>document.querySelector(s);let current=[];$('#overview .stats').insertAdjacentHTML('beforebegin','<div class="card shopping-alert"><button type="button" id="shopping-bell" class="btn"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span id="shopping-bell-label">A carregar alertas de stock…</span></button></div>');
