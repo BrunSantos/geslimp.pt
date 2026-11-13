@@ -1,5 +1,5 @@
 import {initClientMap} from './client-map.js?v=111';
-import {initMyServices} from './my-services.js?v=118';
+import {initMyServices} from './my-services.js?v=119';
 import {initServicePhotos} from '../service-photos.js?v=111';
 import {initSessionName} from './session-name.js?v=111';
 import {initNotifications} from './notifications.js?v=111';
