@@ -19,11 +19,7 @@ service cloud.firestore {
         && validSlots(data.slots) && data.bookingId is string
         && data.updatedAt == request.time;
     }
-    function matchingBookingAfter(id, day) {
-      let booking = getAfter(/databases/$(database)/documents/bookings/$(id)).data;
-      return booking.day == day && booking.status in ['pendente','confirmada','concluida'];
-    }
-    function validBooking(data, id) {
+    function validBooking(data) {
       return data.keys().hasOnly(['name','day','shift','notes','status','createdAt','updatedAt','clientId','phone','email','address','postcode','city','requestedService','source','ownerUid','workersNeeded','employeeIds'])
         && data.keys().hasAll(['name','day','shift','notes','status','createdAt','updatedAt'])
         && data.name is string && data.name.size() > 0 && data.name.size() <= 100
@@ -343,7 +339,7 @@ service cloud.firestore {
       allow delete: if false;
     }
     match /bookings/{id} {
-      allow update: if isAdmin() && validBooking(request.resource.data,id)
+      allow update: if isAdmin() && validBooking(request.resource.data)
         && resource.data.status in ['pendente','confirmada'] && request.resource.data.status == resource.data.status
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['day','shift','updatedAt'])
         && bookingStored(id,request.resource.data);
@@ -353,12 +349,12 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/services/$('site-'+id)).data.clientId == resource.data.clientId
         && (isAdmin() || portalServiceWorker('site-'+id));
       allow read: if isAdmin();
-      allow create: if validId(id) && validBooking(request.resource.data,id)
+      allow create: if validId(id) && validBooking(request.resource.data)
         && (isAdmin() ? freeBooking(request.resource.data) : (isCapacity(get(/databases/$(database)/documents/availability/$(request.resource.data.day)).data) ? validPublicBooking(request.resource.data) : visitorCanBook(request.resource.data)))
         && request.resource.data.status == 'pendente'
         && request.resource.data.createdAt == request.time
         && bookingStored(id,request.resource.data);
-      allow update: if isAdmin() && validBooking(request.resource.data,id)
+      allow update: if isAdmin() && validBooking(request.resource.data)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','clientId','employeeIds','workersNeeded','updatedAt'])
         && (request.resource.data.status == resource.data.status
           || (resource.data.status == 'pendente' && request.resource.data.status in ['confirmada','cancelada'])
