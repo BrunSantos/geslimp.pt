@@ -1,7 +1,7 @@
 import {monthlyQuote,quoteTotalLabel,quotePaymentNote,quoteAddressLabel} from '../quote-pricing.js?v=111';
-import {deleteQuoteHistory,quoteFamily} from './quote-delete.js?v=128';
-import {initQuoteLinks} from './quote-links.js?v=128';
-import {collection,doc,onSnapshot,runTransaction,serverTimestamp} from '../firestore-feedback.js?v=128';
+import {deleteQuoteHistory,quoteFamily} from './quote-delete.js?v=131';
+import {initQuoteLinks} from './quote-links.js?v=131';
+import {collection,doc,onSnapshot,runTransaction,serverTimestamp} from '../firestore-feedback.js?v=131';
 import {todayPortugal} from './client-dates.js';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function totals(q){const base=Math.round(q.lines.reduce((n,l)=>n+l.qty*l.price,0)*100)/100;const net=Math.round(base*(1-q.discount/100)*100)/100;const tax=Math.round(net*q.vat/100*100)/100;return {base,net,tax,total:Math.round((net+tax)*100)/100};}

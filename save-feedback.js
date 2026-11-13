@@ -34,26 +34,3 @@ function makeFeedback(){
 }
 export const trackSave=createSaveTracker(state=>{if(typeof document!=='undefined'){feedback??=makeFeedback();feedback(state);}});
 let feedback;
-
-// Bring application messages into view without moving focus away from a form.
-export function initNoticePopups(){
- if(typeof document==='undefined'||document.documentElement.dataset.geslimpPopups)return;
- document.documentElement.dataset.geslimpPopups='true';ensureFeedbackStyle();
- const style=document.createElement('style');style.textContent='.geslimp-notice-popup{inset:18px 16px auto auto}.geslimp-notice-popup .gsf-row{align-items:flex-start}.geslimp-notice-popup strong{overflow-wrap:anywhere}.geslimp-notice-popup small:empty{display:none}@media(max-width:500px){.geslimp-notice-popup{inset:12px 12px auto 12px}}';document.head.append(style);
- const popup=document.createElement('aside');popup.className='geslimp-save-feedback geslimp-notice-popup';popup.setAttribute('popover','manual');popup.setAttribute('role','status');popup.setAttribute('aria-live','polite');popup.hidden=true;popup.innerHTML='<div class="gsf-row"><span class="gsf-icon" aria-hidden="true"></span><div><strong></strong><small></small></div><button type="button" aria-label="Fechar aviso">×</button></div>';document.body.append(popup);
- let queue=[],active=null,timer;const recent=new Map();
- function next(){clearTimeout(timer);active=queue.shift();if(!active){popup.hidePopover?.();popup.hidden=true;return;}popup.hidden=false;popup.dataset.state=active.error?'error':'saved';popup.querySelector('.gsf-icon').textContent=active.error?'!':'✓';popup.querySelector('strong').textContent=active.text;popup.querySelector('small').textContent=queue.length?queue.length+' aviso(s) por ver':'';if(popup.showPopover)try{popup.showPopover();}catch{}if(!active.error)timer=setTimeout(next,6500);}
- popup.querySelector('button').onclick=next;
- const selectors='[role="status"],[role="alert"],#cloud-status,#message,[id$="-error"],.reschedule-error,.recovery-status,#team-message,#stock-message';
- const observer=new MutationObserver(mutations=>{
-  const elements=new Set();for(const m of mutations){const node=m.target.nodeType===1?m.target:m.target.parentElement;const element=node?.closest(selectors);if(element&&!element.closest('.geslimp-save-feedback'))elements.add(element);}
-  for(const element of elements){const clone=element.cloneNode(true);clone.querySelectorAll('button').forEach(b=>b.remove());const text=clone.textContent.trim();if(!text||/^A (guardar|gravar|preparar|carregar|atualizar|aguardar)/i.test(text))continue;
-   const now=Date.now();if(now-(recent.get(text)||0)<3000)continue;recent.set(text,now);if(recent.size>100)recent.delete(recent.keys().next().value);
-   const error=element.getAttribute('role')==='alert'||element.classList.contains('is-error')||element.classList.contains('error')||/error|erro/.test(element.id)||/não foi|não podes|não é possível|falhou|sem (internet|ligação)|inválid|obrigatóri|escolhe|seleciona|confirma primeiro/i.test(text);
-   queue.push({text,error});if(!element.closest('form,dialog'))element.hidden=true;
-   if(!active)next();else if(error&&!active.error){queue.unshift(active);active=null;const urgent=queue.pop();queue.unshift(urgent);next();}
-  }
- });observer.observe(document.body,{subtree:true,childList:true,characterData:true});
- document.addEventListener('invalid',e=>{const text=e.target.validationMessage;if(!text)return;queue.push({text:(e.target.labels?.[0]?.textContent.trim()||'Campo obrigatório')+': '+text,error:true});if(!active)next();},true);
-}
-if(typeof document!=='undefined')initNoticePopups();

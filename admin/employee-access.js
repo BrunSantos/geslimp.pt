@@ -1,7 +1,7 @@
 import {setDoc as backgroundWrite} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 import {initializeApp,deleteApp} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
 import {getAuth,createUserWithEmailAndPassword,sendPasswordResetEmail,signOut,setPersistence,inMemoryPersistence} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
-import {doc,getDoc,getDocs,collection,query,where,setDoc,writeBatch,serverTimestamp} from '../firestore-feedback.js?v=128';
+import {doc,getDoc,getDocs,collection,query,where,setDoc,writeBatch,serverTimestamp} from '../firestore-feedback.js?v=131';
 import {firebaseConfig} from './firebase-config.js';
 export function initEmployeeAccess(ctx){let employee=null,busy=false,pending=new Map();const $=s=>document.querySelector(s);
  document.body.insertAdjacentHTML('beforeend',`<dialog id="employee-access"><h2>Acesso do colaborador</h2><p id="access-name"></p><p id="access-description">O colaborador vê apenas a sua agenda, perfil de contacto, material recebido e equipamentos emprestados. Não tem acesso à administração.</p><p id="access-state" role="status"></p><div class="actions"><button type="button" class="btn primary" id="access-create">Criar acesso e enviar email</button><button type="button" class="btn" id="access-resend">Reenviar email de password</button><button type="button" class="btn danger" id="access-toggle">Suspender acesso</button><a class="btn" id="access-whatsapp" target="_blank" rel="noopener noreferrer">Enviar convite por WhatsApp</a><button type="button" class="btn" id="access-close">Fechar</button></div></dialog>`);
