@@ -226,6 +226,7 @@ function stopData() {
   resetAdminNavigation({page,closeMenu});
   stops.forEach(stop => stop()); stops = [];
   adminReady = false;
+  const stamp=document.getElementById('last-refresh-time');if(stamp)stamp.textContent='Última atualização: a aguardar';
   activityMonitor?.sync();
   state = { days: {}, dayData:{},teamDays:{},employees:[],recurringGroups:[], bookings: [], clients: [], services: [], completions: [] }; dayLocks = {};
   document.body.classList.add('auth-locked');
@@ -238,7 +239,7 @@ function loadAdminData(user, token) {
   function ready(name) {
     loaded.add(name);
     if (loaded.size === 8 && token === generation) {
-      if(!adminReady)
+      if(!adminReady){markLastRefresh();}
       adminReady = true;
       document.body.classList.remove('auth-locked');
       $('#signed-email').textContent = user.email || '';
@@ -352,6 +353,8 @@ onAuthStateChanged(auth, user => {
   });
 });
 
+const refreshStamp=document.createElement('small');refreshStamp.id='last-refresh-time';refreshStamp.className='last-refresh-time';refreshStamp.textContent='Última atualização: a aguardar';$('#refresh-data').insertAdjacentElement('afterend',refreshStamp);
+function markLastRefresh(){const stamp=document.getElementById('last-refresh-time');if(stamp)stamp.textContent='Última atualização: '+new Intl.DateTimeFormat('pt-PT',{timeZone:'Europe/Lisbon',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(new Date());}
 let refreshing = false;
 $('#refresh-data').onclick = async () => {
   if (refreshing || !adminReady || busy) return;
@@ -366,7 +369,7 @@ $('#refresh-data').onclick = async () => {
     const alerts=['stockItems','stockLoans','serviceRates','monthlyBilling','quoteLinks','serviceIncidents','serviceRescheduleRequests'];
     const extra=({stock,shopping:stock,stockloans:stock,stockreports:[...stock,'serviceRates','monthlyBilling'],team:['employeeKits','kitTemplates'],quotes:['quotes','quoteTemplates','quoteLinks'],notifications:alerts,overview:alerts,'my-services':['serviceIncidents','serviceRescheduleRequests'],agendareports:['availabilityHistory']})[active]||[];
     await Promise.all([...new Set(['availability','bookings','clients','services','employees','teamDays','recurringSlots','serviceCompletions',...extra])].map(name=>getDocsFromServer(collection(db,name))));
-    if(token===generation && adminReady) notice('Dados atualizados.');
+    if(token===generation && adminReady){markLastRefresh();notice('Dados atualizados.');}
   } catch(error) {
     if(token===generation && adminReady) notice(describeError(error),true);
   } finally {
@@ -418,7 +421,7 @@ initCalendarRefresh({
   const token=generation;refreshing=true;
   try{
    await Promise.all(['availability','bookings','clients','services','employees','teamDays','recurringSlots','serviceCompletions'].map(name=>getDocsFromServer(collection(db,name))));
-   if(token===generation&&adminReady&&!document.hidden){render();$('#refresh-data').title='Actualizado automaticamente às '+new Intl.DateTimeFormat('pt-PT',{timeZone:'Europe/Lisbon',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(new Date());}
+   if(token===generation&&adminReady){markLastRefresh();if(!document.hidden)render();$('#refresh-data').title='Actualizado automaticamente às '+new Intl.DateTimeFormat('pt-PT',{timeZone:'Europe/Lisbon',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(new Date());}
   }finally{refreshing=false;}
  },
  onError:()=>{if(adminReady)$('#refresh-data').title='Não foi possível atualizar automaticamente. Nova tentativa dentro de 10 minutos.';}
