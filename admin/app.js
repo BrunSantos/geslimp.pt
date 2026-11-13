@@ -1,3 +1,4 @@
+import {initCalendarRefresh} from './calendar-refresh.js?v=122';
 import {activityPlaceholder,initServiceActivity} from './service-activity.js?v=121';
 import {initClientMap} from './client-map.js?v=111';
 import {initMyServices} from './my-services.js?v=119';
@@ -411,8 +412,17 @@ window.addEventListener('pageshow',event=>{if(event.persisted)resetAdminNavigati
 const agendaReportView=initAgendaReport({auth,db,getState:()=>state,ready:()=>adminReady});
 const renderBeforeAgendaReports=render;render=function(){renderBeforeAgendaReports();agendaReportView.render()};
 
-setInterval(()=>{if(adminReady&&!document.hidden)render()},30000);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&adminReady)render()});
+initCalendarRefresh({
+ canRefresh:()=>adminReady&&!document.hidden&&navigator.onLine&&!busy&&!refreshing&&!document.querySelector('dialog[open]')&&['overview','week','my-services','availability'].includes(document.querySelector('.section.active')?.id),
+ refresh:async()=>{
+  const token=generation;refreshing=true;
+  try{
+   await Promise.all(['availability','bookings','clients','services','employees','teamDays','recurringSlots','serviceCompletions'].map(name=>getDocsFromServer(collection(db,name))));
+   if(token===generation&&adminReady&&!document.hidden){render();$('#refresh-data').title='Actualizado automaticamente às '+new Intl.DateTimeFormat('pt-PT',{timeZone:'Europe/Lisbon',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(new Date());}
+  }finally{refreshing=false;}
+ },
+ onError:()=>{if(adminReady)$('#refresh-data').title='Não foi possível atualizar automaticamente. Nova tentativa dentro de 10 minutos.';}
+});
 
 initEmployeeProjections({auth,db,ready:()=>adminReady,notice});
 
