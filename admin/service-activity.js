@@ -14,8 +14,13 @@ export function initServiceActivity({api,db,auth,ready,getState}){
       if(row?.error||daily?.error){put(el,'<p class="activity-error">Não foi possível consultar o acompanhamento.</p>');continue;}
       if(!row?.loaded||!daily?.loaded){put(el,'<p>A carregar acompanhamento…</p>');continue;}
       const m=model(el),labels={waiting:'Por iniciar',running:'Em curso',finished:'Finalizado'};
-      const events=m.events.length?'<ol class="activity-timeline" aria-label="Acompanhamento do serviço">'+m.events.map(e=>`<li class="activity-${e.kind}"><span>${esc(e.label)}</span>${e.at?'<time>'+esc(clock.format(new Date(e.at)))+'</time>':''}${e.who?'<small>'+esc(e.who)+'</small>':''}${e.note?'<p>'+esc(e.note)+'</p>':''}${e.kind==='incident'?'<small>'+(e.resolved?'Incidência resolvida':'Por resolver')+'</small>':''}</li>`).join('')+'</ol>':'<p class="activity-waiting">Ainda sem registo de início.</p>';
-      const signature=JSON.stringify(m);if(el.dataset.activitySignature!==signature){const open=el.querySelector('details')?.open;el.innerHTML=`<details${open?' open':''}><summary><span class="activity-state activity-${m.status}">${labels[m.status]}</span>${m.incidents?'<span class="activity-incident-label"> · Com incidência</span>':''}</summary>${events}</details>`;el.dataset.activitySignature=signature;}
+      const events=m.events.length?'<ol class="activity-timeline" aria-label="Acompanhamento do serviço">'+m.events.map(e=>`<li class="activity-${e.kind}"><span>${esc(e.label)}</span>${e.at||e.who?'<small class="activity-event-meta">'+(e.at?'<time>'+esc(clock.format(new Date(e.at)))+'</time>':'')+(e.at&&e.who?' · ':'')+esc(e.who)+'</small>':''}${e.note?'<p>'+esc(e.note)+'</p>':''}${e.kind==='incident'?'<small>'+(e.resolved?'Incidência resolvida':'Por resolver')+'</small>':''}</li>`).join('')+'</ol>':'<p class="activity-waiting">Ainda sem registo de início.</p>';
+      const calendar=Boolean(el.closest('#weekly,#overview-summary'));
+      const signature=JSON.stringify([m,calendar]);if(el.dataset.activitySignature!==signature){
+        if(calendar){el.classList.add('activity-calendar');el.innerHTML=m.events.length?events:'<p class="activity-state activity-waiting">Por iniciar</p>';}
+        else{const open=el.querySelector('details')?.open;el.innerHTML=`<details${open?' open':''}><summary><span class="activity-state activity-${m.status}">${labels[m.status]}</span>${m.incidents?'<span class="activity-incident-label"> · Com incidência</span>':''}</summary>${events}</details>`;}
+        el.dataset.activitySignature=signature;
+      }
     }
     const summary=document.getElementById('overview-activity-chart');if(!summary)return;
     const unique=new Map(elements.filter(el=>el.dataset.activityToday).map(el=>[activityKey(el.dataset.activityId,el.dataset.activityDay),el]));
