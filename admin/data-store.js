@@ -1,5 +1,5 @@
 import {quoteConversion} from './quote-conversion.js?v=111';
-import {createCapacityStore} from './capacity-store.js?v=111';
+import {createCapacityStore} from './capacity-store.js?v=129';
 import {recurring,slotKey,slotReserved,occurs,weekdayOf} from '../recurrence.js?v=111';
 import {liveSlots,shiftExpired} from '../shift-time.js?v=111';
 import {mergeOpenings} from './agenda-data.js?v=111';

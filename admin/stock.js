@@ -1,7 +1,7 @@
 import {initStockInvoices} from './stock-invoices.js?v=128';
 import {reportRecords} from './report-reset.js?v=128';
-import {initStockShopping} from './stock-shopping-ui.js?v=128';
-import {initStockProfit} from './stock-profit-ui.js?v=128';
+import {initStockShopping} from './stock-shopping-ui.js?v=129';
+import {initStockProfit} from './stock-profit-ui.js?v=129';
 import * as api from '../firestore-feedback.js?v=128';
 import {supplierSeeds,categories,units,milli,cents,money,quantity,expenseReport} from './stock-data.js?v=111';
 import {createStockStore} from './stock-store.js?v=111';
