@@ -1,4 +1,4 @@
-import * as api from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
+import * as api from '../firestore-feedback.js?v=128';
 import {defaultKit,validKitRows,createKitStore} from './employee-kit-store.js?v=111';
 import {milli,quantity} from './stock-data.js?v=111';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

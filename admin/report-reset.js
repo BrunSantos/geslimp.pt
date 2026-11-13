@@ -1,4 +1,4 @@
-import {doc,onSnapshot,setDoc,serverTimestamp} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
+import {doc,onSnapshot,setDoc,serverTimestamp} from '../firestore-feedback.js?v=128';
 let resetAt=0,loaded=false;
 export const timestampMillis=value=>value?.toMillis?.()??(value?.seconds?value.seconds*1000+(value.nanoseconds||0)/1e6:0);
 const portugalDay=ms=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Lisbon',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(ms));

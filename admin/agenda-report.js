@@ -1,7 +1,7 @@
 import {crewOf} from '../capacity.js?v=111';
 import {recurringVisits} from '../recurrence.js?v=111';
-import {reportAgenda} from './report-reset.js?v=111';
-import {collection,onSnapshot} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
+import {reportAgenda} from './report-reset.js?v=128';
+import {collection,onSnapshot} from '../firestore-feedback.js?v=128';
 import {agendaReport,agendaShifts} from './agenda-data.js?v=111';
 import {todayPortugal} from './client-dates.js';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

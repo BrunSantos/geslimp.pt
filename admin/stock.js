@@ -1,8 +1,8 @@
-import {initStockInvoices} from './stock-invoices.js?v=111';
-import {reportRecords} from './report-reset.js?v=111';
-import {initStockShopping} from './stock-shopping-ui.js?v=111';
-import {initStockProfit} from './stock-profit-ui.js?v=111';
-import * as api from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
+import {initStockInvoices} from './stock-invoices.js?v=128';
+import {reportRecords} from './report-reset.js?v=128';
+import {initStockShopping} from './stock-shopping-ui.js?v=128';
+import {initStockProfit} from './stock-profit-ui.js?v=128';
+import * as api from '../firestore-feedback.js?v=128';
 import {supplierSeeds,categories,units,milli,cents,money,quantity,expenseReport} from './stock-data.js?v=111';
 import {createStockStore} from './stock-store.js?v=111';
 import {prepareTeamPhoto} from './team-photo.js?v=111';

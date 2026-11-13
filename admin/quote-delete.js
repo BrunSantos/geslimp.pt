@@ -1,4 +1,4 @@
-import {collection,doc,getDoc,getDocs,runTransaction} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
+import {collection,doc,getDoc,getDocs,runTransaction} from '../firestore-feedback.js?v=128';
 
 // Revisions form a family through parentId. Duplicates have no parent.
 export function quoteFamily(quotes,id){

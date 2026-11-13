@@ -1,4 +1,4 @@
-import * as api from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
+import * as api from '../firestore-feedback.js?v=128';
 import {prepareInvoiceFile,validateInvoice,writeStockInvoice} from './stock-invoice-data.js?v=111';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function initStockInvoices(ctx,getData,repaint){const $=s=>document.querySelector(s);let invoices=[],stop,user='',token=0,current='',listItem='',busy=false;const urls=new Set();

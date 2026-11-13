@@ -1,4 +1,4 @@
-import {collection,doc,onSnapshot,runTransaction,serverTimestamp,Timestamp} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
+import {collection,doc,onSnapshot,runTransaction,serverTimestamp,Timestamp} from '../firestore-feedback.js?v=128';
 import {publicQuote,randomToken,linkState} from './quote-link-data.js';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function initQuoteLinks(ctx,{getQuotes,render}){
