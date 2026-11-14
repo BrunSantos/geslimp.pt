@@ -1,4 +1,4 @@
-import {initIncidentReschedule} from './incident-reschedule-ui.js?v=26.11.2';
+import {initIncidentReschedule} from './incident-reschedule-ui.js?v=26.11.3';
 import {initManualCorrections} from './manual-correction-ui.js?v=26.11.2';
 import {initStockKitModels} from './stock-kit-models.js?v=138';
 import {weekBounds,renderWeeklyServiceSummary} from './weekly-service-summary.js?v=26.11.2';
@@ -6,7 +6,7 @@ import {initServiceChangeHistory} from './service-change-history.js?v=133';
 import {initCalendarRefresh} from './calendar-refresh.js?v=122';
 import {activityPlaceholder,initServiceActivity} from './service-activity.js?v=26.11.2';
 import {initClientMap} from './client-map.js?v=111';
-import {initMyServices} from './my-services.js?v=26.11.2';
+import {initMyServices} from './my-services.js?v=26.11.3';
 import {initServicePhotos} from '../service-photos.js?v=131';
 import {initSessionName} from './session-name.js?v=111';
 import {initNotifications} from './notifications.js?v=26.11.2';
@@ -41,7 +41,7 @@ const store = createDataStore({collection, doc, runTransaction, serverTimestamp,
 let state = {days: {}, dayData:{},teamDays:{},employees:[],recurringGroups:[], bookings: [], clients: [], services: [], completions: [], interruptions: {}};
 let dayLocks = {};
 let adminReady = false;
-let activityMonitor=null;
+let activityMonitor=null;let incidentReschedule=null;
 let busy = false;
 const savingDays = new Map();
 const availabilityMessages = new Map();
@@ -454,10 +454,10 @@ const servicePhotos=initServicePhotos({db,auth,admin:true,ready:()=>adminReady})
 document.addEventListener('geslimp-service-list',()=>{for(const article of document.querySelectorAll('#services-list .service-record')){const id=article.querySelector('[data-edit-service]')?.dataset.editService,service=state.services.find(s=>s.id===id);if(service?.frequency!=='Pontual'||article.querySelector('[data-service-photos]'))continue;const button=document.createElement('button');button.type='button';button.className='btn';button.dataset.servicePhotos=id;button.textContent='Fotos antes e depois';(article.querySelector('.service-buttons')||article).append(button);}});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-service-photos]');if(b){const record=state.services.find(s=>s.id===b.dataset.servicePhotos);if(record)servicePhotos.open(record);}});
 
-const myServices=initMyServices({db,auth,ready:()=>adminReady,getState:()=>state,page,closeMenu,notice});const beforeMyServicesRender=render;render=function(){beforeMyServicesRender();myServices.render()};
+const myServices=initMyServices({db,auth,ready:()=>adminReady,getState:()=>state,page,closeMenu,notice,onIncidentSaved:payload=>incidentReschedule.openSaved(payload)});const beforeMyServicesRender=render;render=function(){beforeMyServicesRender();myServices.render()};
 
 activityMonitor=initServiceActivity({api:{onSnapshot,collection,query,where},db,auth,ready:()=>adminReady,getState:()=>state});activityMonitor.sync();
 
 initManualCorrections({db,auth,ready:()=>adminReady,getState:()=>state,notice});
 
-initIncidentReschedule({db,auth,ready:()=>adminReady,getState:()=>state,notice});
+incidentReschedule=initIncidentReschedule({db,auth,ready:()=>adminReady,getState:()=>state,notice});
