@@ -1,3 +1,4 @@
+import {initStockKitModels} from './stock-kit-models.js?v=138';
 import {weekBounds,renderWeeklyServiceSummary} from './weekly-service-summary.js?v=137';
 import {initServiceChangeHistory} from './service-change-history.js?v=133';
 import {initCalendarRefresh} from './calendar-refresh.js?v=122';
@@ -20,7 +21,7 @@ import {initAgendaReport} from './agenda-report.js?v=131';
 import {bookingSlots} from './agenda-data.js?v=111';
 import {resetAdminNavigation} from './navigation-start.js?v=111';
 import {initStock} from './stock.js?v=137';
-import {initTeam} from './team.js?v=131';
+import {initTeam} from './team.js?v=138';
 import {initQuotes} from './quotes.js?v=131';
 import {todayPortugal, validDate, isPremium} from './client-dates.js';
 import { createMapLinks } from './map-links.js';
@@ -372,7 +373,7 @@ $('#refresh-data').onclick = async () => {
     if (!navigator.onLine) throw new Error('Sem ligação à Internet. Tenta novamente quando estiveres online.');
     // Keep the existing listeners active: they apply the authoritative snapshots.
     const active=document.querySelector('.section.active')?.id||'overview';
-    const stock=['stockItems','stockSuppliers','stockMovements','stockLoans','clientReceipts'];
+    const stock=['stockItems','stockSuppliers','stockMovements','stockLoans','clientReceipts','kitTemplates'];
     const alerts=['stockItems','stockLoans','serviceRates','monthlyBilling','quoteLinks','serviceIncidents','serviceRescheduleRequests'];
     const extra=({stock,shopping:stock,stockloans:stock,stockreports:[...stock,'serviceRates','monthlyBilling'],team:['employeeKits','kitTemplates'],quotes:['quotes','quoteTemplates','quoteLinks'],notifications:alerts,overview:alerts,'my-services':['serviceIncidents','serviceRescheduleRequests'],agendareports:['availabilityHistory']})[active]||[];
     await Promise.all([...new Set(['availability','bookings','clients','services','employees','teamDays','recurringSlots','serviceCompletions',...extra])].map(name=>getDocsFromServer(collection(db,name))));
@@ -413,6 +414,7 @@ adjustMobileDialogs();
 
 initReportReset({auth,db,ready:()=>adminReady,notice});
 initStock({auth,db,getState:()=>state,ready:()=>adminReady,notice});
+initStockKitModels({auth,db,getState:()=>state,ready:()=>adminReady,notice});
 adjustMobileDialogs();
 
 // Cada entrada começa na Visão geral, sem recuperar secções abertas.

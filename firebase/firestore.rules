@@ -651,27 +651,49 @@ service cloud.firestore {
           && next.qtyMilli == old.qtyMilli + m.qtyMilli && next.onLoanMilli == old.onLoanMilli - m.qtyMilli
           && next.inventoryValueCents == old.inventoryValueCents && next.lastSupplierId == old.lastSupplierId));
     }
+    // Apenas administradores escrevem composições; cada entrega é validada
+    // pelas regras de movimentos e inventário na mesma transação.
+    function validKitRows(rows,linked) {
+      return rows is list && rows.size() <= 30 && (!linked || rows.size() > 0);
+    }
+    function validKitMetadata(d) {
+      return d.get('templateId','') is string && d.get('templateId','').size() <= 128
+        && d.get('templateName','') is string && d.get('templateName','').size() <= 100
+        && d.get('serviceType','') is string && d.get('serviceType','').size() <= 100;
+    }
+    function namedKit(d) {
+      return d.keys().hasOnly(['name','serviceType','rows','archived','createdAt','updatedAt'])
+        && d.keys().hasAll(['name','serviceType','rows','archived','createdAt','updatedAt'])
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 100
+        && d.serviceType is string && d.serviceType.size() <= 100 && d.archived is bool
+        && validKitRows(d.rows,true) && d.rows.size() > 0
+        && d.createdAt is timestamp && d.updatedAt == request.time;
+    }
     match /kitTemplates/{id} {
       allow read: if isAdmin();
+      allow create: if isAdmin() && validId(id) && id != 'default' && namedKit(request.resource.data) && request.resource.data.createdAt == request.time;
+      allow update: if isAdmin() && id != 'default' && namedKit(request.resource.data) && request.resource.data.createdAt == resource.data.createdAt;
       allow create, update: if isAdmin() && id == 'default'
         && request.resource.data.keys().hasOnly(['rows','updatedAt'])
-        && request.resource.data.rows is list && request.resource.data.rows.size() <= 30
-        && request.resource.data.updatedAt == request.time;
+        && validKitRows(request.resource.data.rows,false) && request.resource.data.updatedAt == request.time;
       allow delete: if false;
     }
     match /employeeKits/{employeeId} {
       allow read: if isAdmin();
       allow create: if isAdmin() && existsAfter(/databases/$(database)/documents/employees/$(employeeId))
-        && request.resource.data.keys().hasOnly(['rows','deliveredIds','createdAt','updatedAt'])
-        && request.resource.data.rows is list && request.resource.data.rows.size() <= 30
+        && request.resource.data.keys().hasOnly(['rows','deliveredIds','createdAt','updatedAt','templateId','templateName','serviceType'])
+        && validKitMetadata(request.resource.data) && validKitRows(request.resource.data.rows,false)
         && request.resource.data.deliveredIds == [] && request.resource.data.createdAt == request.time
         && request.resource.data.updatedAt == request.time;
       allow update: if isAdmin()
-        && request.resource.data.keys().hasOnly(['rows','deliveredIds','createdAt','updatedAt'])
-        && request.resource.data.rows is list && request.resource.data.rows.size() <= 30
+        && request.resource.data.keys().hasOnly(['rows','deliveredIds','createdAt','updatedAt','templateId','templateName','serviceType'])
+        && validKitMetadata(request.resource.data) && validKitRows(request.resource.data.rows,false)
         && request.resource.data.deliveredIds is list && request.resource.data.deliveredIds.size() <= 30
         && request.resource.data.deliveredIds.hasAll(resource.data.deliveredIds)
-        && (resource.data.deliveredIds.size() == 0 || request.resource.data.rows == resource.data.rows)
+        && (resource.data.deliveredIds.size() == 0 || (request.resource.data.rows == resource.data.rows
+          && request.resource.data.get('templateId','') == resource.data.get('templateId','')
+          && request.resource.data.get('templateName','') == resource.data.get('templateName','')
+          && request.resource.data.get('serviceType','') == resource.data.get('serviceType','')))
         && request.resource.data.createdAt == resource.data.createdAt && request.resource.data.updatedAt == request.time;
       allow delete: if false;
     }
