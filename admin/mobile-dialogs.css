@@ -1,0 +1,20 @@
+/* Carregado depois dos estilos das secções para uniformizar as janelas móveis. */
+.mobile-dialog-heading{display:contents}.mobile-dialog-close{display:none}
+@media(max-width:850px){
+ html.mobile-dialog-open,html.mobile-dialog-open body{overflow:hidden;overscroll-behavior:none}
+ dialog{box-sizing:border-box!important;position:fixed!important;inset:auto!important;top:var(--mobile-dialog-top,0px)!important;left:var(--mobile-dialog-left,0px)!important;right:auto!important;bottom:auto!important;margin:0!important;transform:none!important;width:var(--mobile-dialog-width,100%)!important;min-width:0!important;max-width:100%!important;height:var(--mobile-dialog-height,100dvh)!important;min-height:0!important;max-height:var(--mobile-dialog-height,100dvh)!important;border:0!important;border-radius:0!important;padding:18px max(18px,env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left))!important;overflow:auto!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scroll-padding-block:18px 80px}
+ dialog :where(form,fieldset,label,section,article,.row,.head,.actions,.q-grid,.q-line,.stock-form-grid,.team-grid,.kit-row){min-width:0;max-width:100%;box-sizing:border-box}
+ dialog [hidden]{display:none!important}
+ dialog form{width:100%;margin:0}dialog fieldset{margin-inline:0}
+ dialog input:not([type="checkbox"]):not([type="radio"]),dialog select,dialog textarea{box-sizing:border-box!important;min-width:0!important;max-width:100%!important;width:100%!important;font-size:16px!important;min-height:46px}
+ dialog input[type="date"],dialog input[type="time"],dialog input[type="datetime-local"]{display:block;appearance:none;-webkit-appearance:none;text-align:left;overflow:hidden}
+ dialog input::-webkit-date-and-time-value{min-height:1.2em;text-align:left}
+ dialog .q-grid,dialog .stock-form-grid,dialog .team-grid,dialog .team-profile-values{grid-template-columns:minmax(0,1fr)!important}
+ dialog .q-line{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px!important;align-items:center}
+ dialog .q-line>input:first-child{grid-column:1/-1}dialog .q-line>.btn{min-width:0;padding:8px}
+ dialog .head{flex-wrap:wrap}dialog .actions{flex-wrap:wrap;gap:10px;padding-bottom:12px}
+ dialog .actions>.btn{min-height:44px;max-width:100%;white-space:normal;flex:1 1 120px}
+ dialog h2,dialog h3,dialog p,dialog label{overflow-wrap:anywhere}
+ .mobile-dialog-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+ .mobile-dialog-heading h2{font-size:21px;min-width:0}.mobile-dialog-close{display:block;flex:none;min-height:44px;margin:0}
+}
