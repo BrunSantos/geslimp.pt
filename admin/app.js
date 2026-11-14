@@ -1,10 +1,11 @@
+import {initManualCorrections} from './manual-correction-ui.js?v=141';
 import {initStockKitModels} from './stock-kit-models.js?v=138';
 import {weekBounds,renderWeeklyServiceSummary} from './weekly-service-summary.js?v=137';
 import {initServiceChangeHistory} from './service-change-history.js?v=133';
 import {initCalendarRefresh} from './calendar-refresh.js?v=122';
 import {activityPlaceholder,initServiceActivity} from './service-activity.js?v=121';
 import {initClientMap} from './client-map.js?v=111';
-import {initMyServices} from './my-services.js?v=133';
+import {initMyServices} from './my-services.js?v=141';
 import {initServicePhotos} from '../service-photos.js?v=131';
 import {initSessionName} from './session-name.js?v=111';
 import {initNotifications} from './notifications.js?v=133';
@@ -454,3 +455,5 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-service-ph
 const myServices=initMyServices({db,auth,ready:()=>adminReady,getState:()=>state,page,closeMenu,notice});const beforeMyServicesRender=render;render=function(){beforeMyServicesRender();myServices.render()};
 
 activityMonitor=initServiceActivity({api:{onSnapshot,collection,query,where},db,auth,ready:()=>adminReady,getState:()=>state});activityMonitor.sync();
+
+initManualCorrections({db,auth,ready:()=>adminReady,getState:()=>state,notice});

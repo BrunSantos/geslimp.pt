@@ -179,7 +179,7 @@ service cloud.firestore {
         && timestamp.date(int(parts[0]),int(parts[1]),int(parts[2])) <= request.time + duration.value(1,'h');
     }
     function workShape(d,sid,day,uid) {
-      return d.keys().hasOnly(['serviceId','clientId','day','employeeId','uid','status','startedAt','finishedAt','comment','updatedAt'])
+      return d.keys().hasOnly(['serviceId','clientId','day','employeeId','uid','status','startedAt','finishedAt','comment','updatedAt','correctionId'])
         && d.keys().hasAll(['serviceId','clientId','day','employeeId','uid','status','startedAt','finishedAt','comment','updatedAt'])
         && d.serviceId == sid && d.day == day && d.uid == uid && uid == request.auth.uid
         && d.employeeId is string && workSelf(d.employeeId) && assignedServiceEmployee(sid,d.employeeId)
@@ -187,10 +187,34 @@ service cloud.firestore {
         && serviceWorkDay(sid,day) && d.status in ['started','completed','incident']
         && d.comment is string && d.comment.size() <= 5000 && d.updatedAt == request.time;
     }
+    function manualAudit(sid,correctionId) {
+      return getAfter(/databases/$(database)/documents/services/$(sid)/manualCorrections/$(correctionId)).data;
+    }
+    function manualWork(d,sid,day,uid) {
+      let a = manualAudit(sid,d.correctionId);
+      return isAdmin() && a.actorUid == request.auth.uid && a.createdAt == request.time
+        && a.targetServiceId == sid && a.after.day == day && a.afterWorkers[uid] == d
+        && d.keys().hasOnly(['serviceId','clientId','day','employeeId','uid','status','startedAt','finishedAt','comment','updatedAt','correctionId'])
+        && d.serviceId == sid && d.day == day && validDay(day) && d.uid == uid
+        && d.clientId == getAfter(/databases/$(database)/documents/services/$(sid)).data.clientId
+        && d.status in ['started','completed','incident'] && d.updatedAt == request.time
+        && (d.startedAt == null || (d.startedAt is timestamp && d.startedAt <= request.time))
+        && (d.finishedAt == null || (d.finishedAt is timestamp && d.startedAt is timestamp && d.finishedAt >= d.startedAt && d.finishedAt <= request.time));
+    }
+    function sourceManualAudit(sid,day) {
+      let head=getAfter(/databases/$(database)/documents/services/$(sid)/manualCorrectionHeads/$(day)).data;
+      return manualAudit(sid,head.correctionId);
+    }
     match /serviceWork/{sid}/days/{day}/workers/{uid} {
+      allow create, update: if isAdmin() && manualWork(request.resource.data,sid,day,uid);
+      allow delete: if isAdmin() && sourceManualAudit(sid,day).actorUid == request.auth.uid
+        && sourceManualAudit(sid,day).createdAt == request.time
+        && sourceManualAudit(sid,day).beforeWorkers[uid] == resource.data;
+
       allow get: if isAdmin() || (request.auth != null && request.auth.uid == uid && portalServiceWorker(sid));
       allow list: if isAdmin();
       allow create: if request.auth != null && workShape(request.resource.data,sid,day,uid)
+        && !('correctionId' in request.resource.data)
         && request.resource.data.status in ['started','incident'] && request.resource.data.finishedAt == null
         && request.resource.data.comment == ''
         && (request.resource.data.status == 'started' ? request.resource.data.startedAt == request.time : request.resource.data.startedAt == null);
@@ -235,6 +259,13 @@ service cloud.firestore {
       allow delete: if false;
     }
     match /serviceIncidents/{id} {
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['serviceId','day','correctionId'])
+        && manualAudit(request.resource.data.serviceId,request.resource.data.correctionId).actorUid == request.auth.uid
+        && manualAudit(request.resource.data.serviceId,request.resource.data.correctionId).createdAt == request.time
+        && manualAudit(request.resource.data.serviceId,request.resource.data.correctionId).beforeIncidents[id] == resource.data
+        && manualAudit(request.resource.data.serviceId,request.resource.data.correctionId).after.day == request.resource.data.day;
+
       allow read: if isAdmin();
       allow create: if request.auth != null && validId(id)
         && request.resource.data.keys().hasOnly(['serviceId','clientId','day','employeeId','uid','message','status','createdAt'])
@@ -394,6 +425,10 @@ service cloud.firestore {
         && data.createdAt is timestamp && data.updatedAt == request.time;
     }
     match /serviceCompletions/{id} {
+      allow delete: if isAdmin() && sourceManualAudit(resource.data.serviceId,resource.data.day).actorUid == request.auth.uid
+        && sourceManualAudit(resource.data.serviceId,resource.data.day).createdAt == request.time
+        && sourceManualAudit(resource.data.serviceId,resource.data.day).beforeCompletion == resource.data;
+
       allow get: if request.auth != null && (isAdmin() ||
         (!exists(/databases/$(database)/documents/serviceCompletions/$(id))
           ? portalSelf(get(/databases/$(database)/documents/employeeAccess/$(request.auth.uid)).data.employeeId)
@@ -993,6 +1028,29 @@ service cloud.firestore {
         && request.resource.data.actorName is string
         && request.resource.data.createdAt == request.time;
       allow update, delete: if false;
+    }
+    match /services/{sid}/manualCorrections/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly(['actorUid','actorName','reason','createdAt','sourceServiceId','targetServiceId','before','after','beforeWorkers','afterWorkers','beforeIncidents','beforeCompletion'])
+        && request.resource.data.actorUid == request.auth.uid && request.resource.data.createdAt == request.time
+        && request.resource.data.reason is string && request.resource.data.reason.size() > 0 && request.resource.data.reason.size() <= 5000
+        && request.resource.data.actorName is string
+        && sid in [request.resource.data.sourceServiceId,request.resource.data.targetServiceId]
+        && request.resource.data.beforeWorkers is map && request.resource.data.afterWorkers is map
+        && request.resource.data.beforeIncidents is map
+        && validDay(request.resource.data.before.day) && validDay(request.resource.data.after.day);
+      allow update, delete: if false;
+    }
+    match /services/{sid}/manualCorrectionHeads/{day} {
+      allow read: if isAdmin();
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['correctionId','updatedAt'])
+        && request.resource.data.updatedAt == request.time
+        && manualAudit(sid,request.resource.data.correctionId).actorUid == request.auth.uid
+        && manualAudit(sid,request.resource.data.correctionId).createdAt == request.time
+        && manualAudit(sid,request.resource.data.correctionId).before.day == day;
+      allow delete: if false;
     }
     match /{document=**} { allow read, write: if false; }
   }
