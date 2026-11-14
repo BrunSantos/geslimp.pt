@@ -601,7 +601,7 @@ service cloud.firestore {
 
     // Stock: o inventário e os movimentos são atualizados na mesma transação.
     function stockItemShape(d) {
-      return d.keys().hasOnly(['name','brand','kind','category','unit','minQtyMilli','targetQtyMilli','preferredSupplierId','reference','archived','notes','photoData','qtyMilli','onLoanMilli','inventoryValueCents','lastMovementId','lastSupplierId','createdAt','updatedAt'])
+      return d.keys().hasOnly(['name','brand','kind','category','unit','minQtyMilli','targetQtyMilli','preferredSupplierId','reference','archived','notes','photoData','qtyMilli','onLoanMilli','inventoryValueCents','lastMovementId','lastSupplierId','createdAt','updatedAt','deleted','deletionMode'])
         && d.keys().hasAll(['name','brand','kind','category','unit','minQtyMilli','reference','archived','notes','photoData','qtyMilli','onLoanMilli','inventoryValueCents','lastMovementId','lastSupplierId','createdAt','updatedAt'])
         && d.name is string && d.name.size() > 0 && d.name.size() <= 150
         && d.brand is string && d.brand.size() <= 100 && d.category is string && d.category.size() <= 100
@@ -615,7 +615,8 @@ service cloud.firestore {
         && (d.kind == 'equipment' || d.onLoanMilli == 0)
         && d.inventoryValueCents is int && d.inventoryValueCents >= 0 && d.inventoryValueCents <= 1000000000
         && d.reference is string && d.reference.size() <= 150 && d.archived is bool
-        && (!d.archived || (d.qtyMilli == 0 && d.onLoanMilli == 0))
+        && d.get('deleted',false) is bool && d.get('deletionMode','') in ['','keep','purge']
+        && (d.get('deleted',false) ? d.archived && d.get('deletionMode','') in ['keep','purge'] : d.get('deletionMode','') == '')
         && d.notes is string && d.notes.size() <= 3000
         && d.photoData is string && d.photoData.size() <= 180000
         && (d.photoData == '' || d.photoData.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$'))
@@ -674,16 +675,29 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt && request.resource.data.updatedAt == request.time;
       allow delete: if false;
     }
+    // Só os administradores podem retirar artigos ou eliminar o seu histórico.
+    function stockPurging(itemId) {
+      return validId(itemId) && exists(/databases/$(database)/documents/stockItems/$(itemId)) && get(/databases/$(database)/documents/stockItems/$(itemId)).data.get('deletionMode','') == 'purge';
+    }
+    function stockInvoicePurging(invoiceId) {
+      return exists(/databases/$(database)/documents/stockInvoices/$(invoiceId)) && stockPurging(get(/databases/$(database)/documents/stockInvoices/$(invoiceId)).data.itemId);
+    }
     match /stockItems/{id} {
       allow read: if isAdmin();
-      allow create: if isAdmin() && validId(id) && stockItemShape(request.resource.data) && request.resource.data.createdAt == request.time
+      allow create: if isAdmin() && validId(id) && stockItemShape(request.resource.data) && !request.resource.data.get('deleted',false) && request.resource.data.createdAt == request.time
         && ((request.resource.data.qtyMilli == 0 && request.resource.data.onLoanMilli == 0 && request.resource.data.inventoryValueCents == 0 && request.resource.data.lastMovementId == '' && request.resource.data.lastSupplierId == '')
           || stockDelta(id,{'qtyMilli':0,'onLoanMilli':0,'inventoryValueCents':0,'lastMovementId':'','lastSupplierId':''},request.resource.data));
       allow update: if isAdmin() && stockItemShape(request.resource.data)
         && request.resource.data.createdAt == resource.data.createdAt && request.resource.data.kind == resource.data.kind && request.resource.data.unit == resource.data.unit
-        && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','brand','category','minQtyMilli','targetQtyMilli','preferredSupplierId','reference','archived','notes','photoData','updatedAt'])
-          || (!resource.data.archived && !request.resource.data.archived && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qtyMilli','onLoanMilli','inventoryValueCents','lastMovementId','lastSupplierId','updatedAt']) && stockDelta(id,resource.data,request.resource.data)));
-      allow delete: if false;
+        && ((!resource.data.get('deleted',false) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','brand','category','minQtyMilli','targetQtyMilli','preferredSupplierId','reference','archived','notes','photoData','updatedAt']))
+          || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['archived','deleted','deletionMode','updatedAt'])
+            && (!resource.data.get('deleted',false) || (resource.data.get('deletionMode','') in ['keep','purge'] && request.resource.data.get('deletionMode','') == 'purge')))
+          || (resource.data.get('deletionMode','') != 'purge' && request.resource.data.get('deleted',false) == resource.data.get('deleted',false)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qtyMilli','onLoanMilli','inventoryValueCents','lastMovementId','lastSupplierId','updatedAt'])
+            && ((!resource.data.archived && !request.resource.data.archived)
+              || (resource.data.archived && request.resource.data.archived && getAfter(/databases/$(database)/documents/stockMovements/$(request.resource.data.lastMovementId)).data.kind == 'return'))
+            && stockDelta(id,resource.data,request.resource.data)));
+      allow delete: if isAdmin() && resource.data.get('deletionMode','') == 'purge';
     }
     function stockIssueClient(d) {
       return (d.clientId == '' && d.clientName == '' && d.serviceId == '') || (validId(d.clientId) && exists(/databases/$(database)/documents/clients/$(d.clientId)) && d.clientName == get(/databases/$(database)/documents/clients/$(d.clientId)).data.name
@@ -715,7 +729,8 @@ service cloud.firestore {
       allow create: if isAdmin() && validId(id) && stockMovementShape(request.resource.data)
         && getAfter(/databases/$(database)/documents/stockItems/$(request.resource.data.itemId)).data.lastMovementId == id
         && stockMovementKind(request.resource.data,id,exists(/databases/$(database)/documents/stockItems/$(request.resource.data.itemId)) ? get(/databases/$(database)/documents/stockItems/$(request.resource.data.itemId)).data : {'kind':'consumable','qtyMilli':0,'inventoryValueCents':0});
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if isAdmin() && stockPurging(resource.data.itemId);
     }
     function stockLoanShape(d) {
       return d.keys().hasOnly(['itemId','employeeId','qtyMilli','remainingMilli','day','dueDay','status','lastReturnId','createdAt','updatedAt'])
@@ -744,7 +759,7 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/stockMovements/$(request.resource.data.lastReturnId)).data.kind == 'return'
         && getAfter(/databases/$(database)/documents/stockMovements/$(request.resource.data.lastReturnId)).data.loanId == id
         && request.resource.data.remainingMilli == resource.data.remainingMilli - getAfter(/databases/$(database)/documents/stockMovements/$(request.resource.data.lastReturnId)).data.qtyMilli;
-      allow delete: if false;
+      allow delete: if isAdmin() && stockPurging(resource.data.itemId);
     }
     function validStockInvoice(d,id) {
       let purchase = getAfter(/databases/$(database)/documents/stockMovements/$(id)).data;
@@ -762,17 +777,17 @@ service cloud.firestore {
     }
     match /stockInvoices/{id} {
       allow read: if isAdmin();
-      allow create: if isAdmin() && validId(id) && validStockInvoice(request.resource.data,id) && request.resource.data.createdAt == request.time;
-      allow update: if isAdmin() && validStockInvoice(request.resource.data,id) && request.resource.data.createdAt == resource.data.createdAt && request.resource.data.itemId == resource.data.itemId;
-      allow delete: if false;
+      allow create: if isAdmin() && validId(id) && !stockPurging(request.resource.data.itemId) && validStockInvoice(request.resource.data,id) && request.resource.data.createdAt == request.time;
+      allow update: if isAdmin() && !stockPurging(resource.data.itemId) && validStockInvoice(request.resource.data,id) && request.resource.data.createdAt == resource.data.createdAt && request.resource.data.itemId == resource.data.itemId;
+      allow delete: if isAdmin() && stockPurging(resource.data.itemId);
       match /parts/{index} {
         allow read: if isAdmin();
-        allow create, update: if isAdmin() && index in ['0','1','2','3','4','5','6']
+        allow create, update: if isAdmin() && !stockInvoicePurging(id) && index in ['0','1','2','3','4','5','6']
           && request.resource.data.keys().hasOnly(['data']) && request.resource.data.data is string
           && request.resource.data.data.size() > 0 && request.resource.data.data.size() <= 450000
           && request.resource.data.data.matches('^[A-Za-z0-9+/=]+$')
           && getAfter(/databases/$(database)/documents/stockInvoices/$(id)).data.updatedAt == request.time;
-        allow delete: if isAdmin() && getAfter(/databases/$(database)/documents/stockInvoices/$(id)).data.updatedAt == request.time;
+        allow delete: if isAdmin() && (stockInvoicePurging(id) || getAfter(/databases/$(database)/documents/stockInvoices/$(id)).data.updatedAt == request.time);
       }
     }
     match /stockSuppliers/{id} {

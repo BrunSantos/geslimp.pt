@@ -12,3 +12,5 @@
 .invoice-fields{min-width:0;margin:18px 0;padding:16px;border:1px solid #dce8ed;border-radius:14px}.invoice-fields legend{font-weight:700;padding:0 5px}.invoice-fields p{overflow-wrap:anywhere}#invoice-preview{overflow:hidden}#invoice-editor{width:min(720px,calc(100vw - 28px));max-height:88dvh;overflow:auto}#invoice-list{max-height:88dvh;overflow:auto}
 
 .invoice-fields[hidden]{display:none!important}
+
+.stock-state-tabs{display:flex;gap:0;margin:18px 0;border:1px solid #cfe1ef;border-radius:12px;overflow:hidden;max-width:480px}.stock-state-tabs>.btn{flex:1;border:0;border-radius:0;margin:0;min-height:44px}.stock-state-tabs>.btn[aria-pressed="true"]{background:#0b5fad;color:white}.record-menu-options>.btn small{display:block;color:#6a7e8d;font-size:12px;font-weight:400;margin-top:3px}#stock-lifecycle{width:min(560px,95vw);max-height:90dvh;overflow:auto}#stock-lifecycle-description{line-height:1.6}#stock-lifecycle .actions{flex-wrap:wrap}.stock-tools label[hidden]{display:none}

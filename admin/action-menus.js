@@ -30,7 +30,7 @@ function arrange() {
     const primary = card.querySelector(quote ? '[data-preview]' : stock ? '[data-stock-issue],[data-stock-loan]' : client ? '[data-services-client]' : '[data-occurrence-service],[data-service-complete]');
     if (primary) { primary.classList.add('primary'); if (primary.parentElement !== row) row.prepend(primary); }
     if (stock && !primary) card.querySelector('[data-stock-history]')?.classList.add('primary');
-    const selector = quote ? '[data-revise],[data-duplicate],[data-model],[data-delete-quote],[data-convert],[data-create-client],[data-share-quote],[data-decide-quote],[data-revoke-quote]' : stock ? '[data-stock-edit],[data-stock-history],[data-invoice-item]' : client ? '[data-edit-client],[data-delete-client],[data-quotes-client],[data-team-assign]' : '[data-edit-service],[data-end-recurrence],[data-service-reschedule],[data-service-cancel],[data-service-delete],[data-team-assign],[data-service-photos],[data-billing-service],[data-work-history]';
+    const selector = quote ? '[data-revise],[data-duplicate],[data-model],[data-delete-quote],[data-convert],[data-create-client],[data-share-quote],[data-decide-quote],[data-revoke-quote]' : stock ? '[data-stock-edit],[data-stock-history],[data-invoice-item],[data-stock-toggle],[data-stock-keep],[data-stock-purge]' : client ? '[data-edit-client],[data-delete-client],[data-quotes-client],[data-team-assign]' : '[data-edit-service],[data-end-recurrence],[data-service-reschedule],[data-service-cancel],[data-service-delete],[data-team-assign],[data-service-photos],[data-billing-service],[data-work-history]';
     for (const b of card.querySelectorAll(selector)) if (b !== primary) move(b, options);
     if (quote) {
       const status = row.querySelector('[data-status]');

@@ -1,4 +1,4 @@
-import {weekBounds,renderWeeklyServiceSummary} from './weekly-service-summary.js?v=136';
+import {weekBounds,renderWeeklyServiceSummary} from './weekly-service-summary.js?v=137';
 import {initServiceChangeHistory} from './service-change-history.js?v=133';
 import {initCalendarRefresh} from './calendar-refresh.js?v=122';
 import {activityPlaceholder,initServiceActivity} from './service-activity.js?v=121';
@@ -19,7 +19,7 @@ import {liveSlots,shiftExpired} from '../shift-time.js?v=111';
 import {initAgendaReport} from './agenda-report.js?v=131';
 import {bookingSlots} from './agenda-data.js?v=111';
 import {resetAdminNavigation} from './navigation-start.js?v=111';
-import {initStock} from './stock.js?v=135';
+import {initStock} from './stock.js?v=137';
 import {initTeam} from './team.js?v=131';
 import {initQuotes} from './quotes.js?v=131';
 import {todayPortugal, validDate, isPremium} from './client-dates.js';
