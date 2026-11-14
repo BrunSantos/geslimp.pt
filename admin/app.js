@@ -1,3 +1,4 @@
+import {weekBounds,renderWeeklyServiceSummary} from './weekly-service-summary.js?v=136';
 import {initServiceChangeHistory} from './service-change-history.js?v=133';
 import {initCalendarRefresh} from './calendar-refresh.js?v=122';
 import {activityPlaceholder,initServiceActivity} from './service-activity.js?v=121';
@@ -18,7 +19,7 @@ import {liveSlots,shiftExpired} from '../shift-time.js?v=111';
 import {initAgendaReport} from './agenda-report.js?v=131';
 import {bookingSlots} from './agenda-data.js?v=111';
 import {resetAdminNavigation} from './navigation-start.js?v=111';
-import {initStock} from './stock.js?v=133';
+import {initStock} from './stock.js?v=135';
 import {initTeam} from './team.js?v=131';
 import {initQuotes} from './quotes.js?v=131';
 import {todayPortugal, validDate, isPremium} from './client-dates.js';
@@ -138,6 +139,8 @@ function recurrenceAt(day,index){return state.services.find(s=>s.status==='ativo
 // Serviços da empresa inteira, independentemente do colaborador atribuído.
 function overviewServices(day){return recurringVisits(state.services,state.clients,day,day,state.completions).filter(v=>v.status!=='cancelada');}
 function renderOverviewDashboard(){
+ renderWeeklyServiceSummary($('#overview-weekly-services'),state,todayPortugal(),{ready:adminReady,updated:$('#last-refresh-time')?.textContent||'Última atualização: a aguardar'});
+ const weeklyButton=$('#weekly-services-agenda');if(weeklyButton)weeklyButton.onclick=()=>{const range=weekBounds(todayPortugal());weekStart=new Date(range.from+'T12:00:00');page('week');renderWeek();};
  const today=todayPortugal(),endDate=new Date(today+'T12:00:00Z');endDate.setUTCDate(endDate.getUTCDate()+30);const until=endDate.toISOString().slice(0,10);
  const bookings=state.bookings.filter(b=>b.day>=today&&b.day<=until&&b.status!=='cancelada').map(b=>{const service=state.services.find(s=>s.id==='site-'+b.id),client=state.clients.find(c=>c.id===b.clientId);return {serviceId:'site-'+b.id,day:b.day,shift:b.shift,client:client?.name||b.name||'Cliente',title:service?.title||b.requestedService||'Marcação',people:service?crewOf(service,client):crewOf(b,client),status:b.status};});
  const visits=recurringVisits(state.services,state.clients,today,until,state.completions).filter(v=>v.status!=='cancelada').map(v=>{const service=state.services.find(s=>s.id===v.serviceId),client=state.clients.find(c=>c.id===v.clientId);return {serviceId:v.serviceId,day:v.day,shift:v.shift,client:client?.name||v.name||'Cliente',title:service?.title||'Serviço',people:service?crewOf(service,client):[],status:v.status};});
@@ -243,7 +246,7 @@ function loadAdminData(user, token) {
   function ready(name) {
     loaded.add(name);
     if (loaded.size === 8 && token === generation) {
-      if(!adminReady){markLastRefresh();}
+      markLastRefresh();
       adminReady = true;
       document.body.classList.remove('auth-locked');
       $('#signed-email').textContent = user.email || '';
@@ -358,7 +361,7 @@ onAuthStateChanged(auth, user => {
 });
 
 const refreshStamp=document.createElement('small');refreshStamp.id='last-refresh-time';refreshStamp.className='last-refresh-time';refreshStamp.textContent='Última atualização: a aguardar';$('#refresh-data').insertAdjacentElement('afterend',refreshStamp);
-function markLastRefresh(){const stamp=document.getElementById('last-refresh-time');if(stamp)stamp.textContent='Última atualização: '+new Intl.DateTimeFormat('pt-PT',{timeZone:'Europe/Lisbon',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(new Date());}
+function markLastRefresh(){const text='Última atualização: '+new Intl.DateTimeFormat('pt-PT',{timeZone:'Europe/Lisbon',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(new Date());for(const id of ['last-refresh-time','weekly-services-updated']){const stamp=document.getElementById(id);if(stamp)stamp.textContent=text;}}
 let refreshing = false;
 $('#refresh-data').onclick = async () => {
   if (refreshing || !adminReady || busy) return;
