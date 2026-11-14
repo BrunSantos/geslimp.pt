@@ -178,12 +178,31 @@ service cloud.firestore {
         && (s.frequency == 'Pontual' ? day == s.startDate : s.frequency in ['Semanal','Quinzenal'] && weekOf(day) == s.weekday && (s.frequency != 'Quinzenal' || inFortnight(s.startDate,day)))
         && timestamp.date(int(parts[0]),int(parts[1]),int(parts[2])) <= request.time + duration.value(1,'h');
     }
+    // Once a work start exists, ordinary rescheduling is permanently closed for this occurrence.
+    function occurrenceStarted(sid,day) {
+      return (exists(/databases/$(database)/documents/serviceWork/$(sid)/days/$(day))
+          && get(/databases/$(database)/documents/serviceWork/$(sid)/days/$(day)).data.get('started',false))
+        || (exists(/databases/$(database)/documents/serviceWork/$(sid)/days/$(day)/workers/$(request.auth.uid))
+          && (get(/databases/$(database)/documents/serviceWork/$(sid)/days/$(day)/workers/$(request.auth.uid)).data.get('startedAt',null) != null
+            || get(/databases/$(database)/documents/serviceWork/$(sid)/days/$(day)/workers/$(request.auth.uid)).data.status in ['started','completed']));
+    }
+    match /serviceWork/{sid}/days/{day} {
+      allow get: if isAdmin() || (request.auth != null && portalServiceWorker(sid));
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['serviceId','day','started','updatedAt'])
+        && request.resource.data.serviceId == sid && request.resource.data.day == day && validDay(day)
+        && request.resource.data.started == true && request.resource.data.updatedAt == request.time
+        && (isAdmin() || (portalServiceWorker(sid)
+          && getAfter(/databases/$(database)/documents/serviceWork/$(sid)/days/$(day)/workers/$(request.auth.uid)).data.startedAt != null));
+      allow list, update, delete: if false;
+    }
     function workShape(d,sid,day,uid) {
       return d.keys().hasOnly(['serviceId','clientId','day','employeeId','uid','status','startedAt','finishedAt','comment','updatedAt','correctionId'])
         && d.keys().hasAll(['serviceId','clientId','day','employeeId','uid','status','startedAt','finishedAt','comment','updatedAt'])
         && d.serviceId == sid && d.day == day && d.uid == uid && uid == request.auth.uid
         && d.employeeId is string && workSelf(d.employeeId) && assignedServiceEmployee(sid,d.employeeId)
         && d.clientId == get(/databases/$(database)/documents/services/$(sid)).data.clientId
+        && (d.startedAt == null || existsAfter(/databases/$(database)/documents/serviceWork/$(sid)/days/$(day)))
         && serviceWorkDay(sid,day) && d.status in ['started','completed','incident']
         && d.comment is string && d.comment.size() <= 5000 && d.updatedAt == request.time;
     }
@@ -239,6 +258,7 @@ service cloud.firestore {
       allow create: if request.auth != null
         && request.resource.data.keys().hasOnly(['uid','employeeId','serviceId','clientId','day','originalShift','targetDay','targetShift','message','status','createdAt'])
         && request.resource.data.keys().hasAll(['uid','employeeId','serviceId','clientId','day','originalShift','targetDay','targetShift','message','status','createdAt'])
+        && !occurrenceStarted(request.resource.data.serviceId,request.resource.data.day)
         && request.resource.data.uid == request.auth.uid && workSelf(request.resource.data.employeeId)
         && assignedServiceEmployee(request.resource.data.serviceId,request.resource.data.employeeId)
         && request.resource.data.clientId == get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.clientId

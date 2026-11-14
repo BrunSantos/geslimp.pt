@@ -23,6 +23,7 @@ export async function prepareManual(api,db,tx,r,workers,incidents){
  for(const d of workers.docs){const s=await tx.get(d.ref);if(s.exists()){beforeWorkers[d.id]=s.data();sourceRows.push({uid:d.id,data:s.data(),ref:d.ref});}}
  for(const d of incidents.docs){const s=await tx.get(d.ref);if(s.exists()){beforeIncidents[d.id]=s.data();incidentRows.push({id:d.id,data:s.data(),ref:d.ref});}}
  const service=await tx.get(api.doc(db,'services',r.serviceId)),client=await tx.get(api.doc(db,'clients',service.data().clientId));if(!crewOf(service.data(),client.data()).includes(r.manual.employeeId))throw Error('O colaborador não está atribuído ao serviço.');
+ if(sourceRows.some(w=>w.data.status==='completed')&&values.finish===null)throw Error('Este serviço está finalizado. Indica o início e o fim reais.');
  const selected=sourceRows.find(w=>w.uid===r.manual.uid);if(selected&&selected.data.employeeId!==r.manual.employeeId)throw Error('O colaborador do registo foi alterado. Abre novamente a correção.');
  const employee=await tx.get(api.doc(db,'employees',r.manual.employeeId));if(!employee.exists())throw Error('Colaborador não encontrado.');
  if(!selected){if(r.manual.uid===r.uid){if(employee.data().email?.toLowerCase()!==r.manual.actorEmail?.toLowerCase())throw Error('A conta não corresponde ao colaborador.');}else{const access=await tx.get(api.doc(db,'employeeAccess',r.manual.uid));if(access.data()?.employeeId!==r.manual.employeeId||access.data()?.enabled!==true){const link=await tx.get(api.doc(db,'employeeAdminLinks',r.manual.employeeId)),account=await tx.get(api.doc(db,'admins',r.manual.uid));if(link.data()?.uid!==r.manual.uid||account.data()?.enabled!==true)throw Error('O acesso deste colaborador não está ativo.');}}}
@@ -31,10 +32,11 @@ export async function prepareManual(api,db,tx,r,workers,incidents){
  return {auditId:audit.id,values,beforeWorkers,beforeIncidents,sourceRows,incidentRows};
 }
 export async function readManualTarget(api,db,tx,r,p,targetId){
- if(targetId===r.serviceId&&r.targetDay===r.day)return;
+ p.phaseRef=api.doc(db,'serviceWork',targetId,'days',r.targetDay);p.phase=await tx.get(p.phaseRef);if(targetId===r.serviceId&&r.targetDay===r.day)return;
  for(const uid of new Set([...p.sourceRows.map(w=>w.uid),r.manual.uid])){const s=await tx.get(api.doc(db,'serviceWork',targetId,'days',r.targetDay,'workers',uid));if(s.exists())throw Error('Já existem registos na data de destino. Corrige-os separadamente para não os substituir.');}
 }
 export function writeManual(api,db,tx,r,p,s,targetId,done){
+ if(!p.phase?.exists())tx.set(p.phaseRef,{serviceId:targetId,day:r.targetDay,started:true,updatedAt:api.serverTimestamp()});
  const moved=targetId!==r.serviceId||r.targetDay!==r.day,afterWorkers={};
  for(const w of p.sourceRows)afterWorkers[w.uid]={...w.data,serviceId:targetId,day:r.targetDay,correctionId:p.auditId,updatedAt:api.serverTimestamp()};
  const old=p.beforeWorkers[r.manual.uid];afterWorkers[r.manual.uid]={serviceId:targetId,clientId:s.clientId,day:r.targetDay,uid:r.manual.uid,employeeId:r.manual.employeeId,status:p.values.finish===null?'started':'completed',startedAt:api.Timestamp.fromMillis(p.values.start),finishedAt:p.values.finish===null?null:api.Timestamp.fromMillis(p.values.finish),comment:old?.comment||'',updatedAt:api.serverTimestamp(),correctionId:p.auditId};

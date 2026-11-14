@@ -1,6 +1,6 @@
 import {serviceStartWindow} from './service-start-time.js?v=118';
 import * as api from './firestore-feedback.js?v=131';
-import {createServiceWork} from './service-work-store.js?v=141';
+import {createServiceWork} from './service-work-store.js?v=26.11.1';
 import {occurs} from './recurrence.js?v=111';
 import {todayPortugal} from './admin/client-dates.js';
 export const workKey=(id,day)=>id+'|'+day;

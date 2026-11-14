@@ -1,4 +1,4 @@
-import {prepareManual,readManualTarget,writeManual,validateManual} from './manual-correction-store.js?v=141';
+import {prepareManual,readManualTarget,writeManual,validateManual} from './manual-correction-store.js?v=26.11.1';
 import {recordReschedule} from './service-change-history.js?v=133';
 import {crewOf,shiftIndices,groupEntries,weeklyUsed,rowOccurs,slotMap,slotArrays} from '../capacity.js?v=111';
 import {occurs,weekdayOf,slotKey} from '../recurrence.js?v=111';
@@ -7,7 +7,11 @@ import {shiftExpired} from '../shift-time.js?v=111';
 export function createRescheduleStore(api,db,auth){const {doc,collection,runTransaction,serverTimestamp}=api;return {async move(request){if(!request.message?.trim())throw Error('Indica o motivo do reagendamento.');return this.decide(null,true,request);},async decide(id,approve,direct=null){const newRef=doc(collection(db,'services'));let workers,incidents;if(direct?.manual){validateManual(direct);const read=api.getDocsFromServer||api.getDocs;[workers,incidents]=await Promise.all([read(collection(db,'serviceWork',direct.serviceId,'days',direct.day,'workers')),read(api.query(collection(db,'serviceIncidents'),api.where('serviceId','==',direct.serviceId),api.where('day','==',direct.day)))]);if(workers.size+incidents.size>40)throw Error('Esta ocorrência tem demasiados registos para uma correção manual.');}return runTransaction(db,async tx=>{
 const rr=direct?null:doc(db,'serviceRescheduleRequests',id),request=rr?await tx.get(rr):null,r=direct||request.data();if(!r||r.status!=='pending')throw Error('Este pedido já foi tratado.');
 if(!approve){recordReschedule(tx,db,r.serviceId,{day:r.day,originalShift:r.originalShift},r,r.message,{status:'rejected',requestId:id});tx.update(rr,{status:'rejected',decidedBy:auth.currentUser.uid,decidedAt:serverTimestamp()});return;}
-const manual=!!direct?.manual;if(!manual&&(!validDate(r.targetDay)||r.targetDay<todayPortugal()||shiftIndices(r.targetShift).some(i=>shiftExpired(r.targetDay,i))))throw Error('O turno escolhido já começou. Escolhe outro turno ou outra data.');
+const manual=!!direct?.manual;
+if(!manual){const phase=await tx.get(doc(db,'serviceWork',r.serviceId,'days',r.day));if(phase.data()?.started)throw Error('Este serviço já foi iniciado. Só a administração pode retificar através de Correção manual.');
+const read=api.getDocsFromServer||api.getDocs,rows=await read(collection(db,'serviceWork',r.serviceId,'days',r.day,'workers'));
+for(const d of rows.docs){const fresh=await tx.get(d.ref),w=fresh.data();if(w?.startedAt||['started','completed'].includes(w?.status))throw Error('Este serviço já foi iniciado. Só a administração pode retificar através de Correção manual.');}}
+if(!manual&&(!validDate(r.targetDay)||r.targetDay<todayPortugal()||shiftIndices(r.targetShift).some(i=>shiftExpired(r.targetDay,i))))throw Error('O turno escolhido já começou. Escolhe outro turno ou outra data.');
 const sr=doc(db,'services',r.serviceId),ss=await tx.get(sr),s=ss.data();if(!s||!(manual?['ativo','concluido'].includes(s.status):s.status==='ativo')||s.shift!==r.originalShift||(['Semanal','Quinzenal'].includes(s.frequency)?!occurs(s,r.day):s.startDate!==r.day))throw Error('O serviço foi alterado. Recusa este pedido e confirma uma nova data.');
 const done=await tx.get(doc(db,'serviceCompletions',r.serviceId+'-'+r.day));if(done.exists()&&!manual)throw Error('Este serviço já foi concluído.');
 if(manual&&(done.exists()||s.status==='concluido')&&!r.manual.finish)throw Error('Um serviço já finalizado deve manter uma hora de fim.');
