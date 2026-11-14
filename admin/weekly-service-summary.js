@@ -1,3 +1,4 @@
+import {familyMeta,occurrenceIdentity,isSupersededOccurrence} from './service-family.js?v=26.11.4';
 import {recurringVisits,recurring} from '../recurrence.js?v=111';
 
 // Datas civis de Lisboa recebidas da aplicação; cálculo em UTC evita desvios de DST.
@@ -12,8 +13,8 @@ export function weeklyServiceSummary(state,today){
  const rows=new Map(),byId=new Map(services.map(s=>[s.id,s])),bookingIds=new Set(bookings.map(b=>b.id));
  const inside=day=>day>=from&&day<=to;
  function add(serviceId,day,isRecurring,done){
-  if(!inside(day)||state.interruptions?.[serviceId+'-'+day])return;
-  const key=serviceId+'|'+day,old=rows.get(key);
+  if(!inside(day)||state.interruptions?.[serviceId+'-'+day]||isSupersededOccurrence(serviceId,day,state))return;const family=familyMeta(serviceId,state),definition=byId.get(family.rootId);if(definition)isRecurring=recurring(definition);
+  const key=occurrenceIdentity(serviceId,day,state),old=rows.get(key);
   rows.set(key,{serviceId,day,recurring:isRecurring,done:day<=today&&Boolean(done||old?.done)});
  }
  for(const b of bookings){

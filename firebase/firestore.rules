@@ -34,11 +34,12 @@ service cloud.firestore {
           && existsAfter(/databases/$(database)/documents/clients/$(data.clientId))));
     }
     function validClient(data) {
-      return employeeReference(data) && data.keys().hasOnly(['name','phone','email','address','postcode','city','type','service','serviceDetails','notes','clientSince','createdAt','updatedAt','employeeId'])
+      return employeeReference(data) && data.keys().hasOnly(['name','phone','email','whatsapp','address','postcode','city','type','service','serviceDetails','notes','clientSince','createdAt','updatedAt','employeeId'])
         && data.keys().hasAll(['name','phone','email','address','postcode','city','type','service','serviceDetails','notes','clientSince','createdAt','updatedAt'])
         && data.name is string && data.name.size() > 0 && data.name.size() <= 100
         && data.phone is string && data.phone.size() >= 7 && data.phone.size() <= 40 && data.phone.matches('.*[0-9].*')
         && data.email is string && data.email.size() <= 150
+        && (!('whatsapp' in data) || (data.whatsapp is string && (data.whatsapp == '' || data.whatsapp.matches('^[+][1-9][0-9]{7,14}$'))))
         && data.address is string && data.address.size() <= 200 && data.address.matches('.*[^ ].*')
         && data.postcode is string && data.postcode.matches('^[0-9]{4}-[0-9]{3}$')
         && data.city is string && data.city.size() <= 100 && data.city.matches('.*[^ ].*')
@@ -456,8 +457,14 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/services/$(request.resource.data.targetServiceId)).data.continuationOf.interruptionId == id;
       allow update, delete: if false;
     }
+    function validOccurrenceOf(o,clientId) {
+      return o is map && o.keys().hasOnly(['serviceId','originalDay','previousRecordId'])
+        && validId(o.serviceId) && validId(o.previousRecordId) && validDay(o.originalDay)
+        && getAfter(/databases/$(database)/documents/services/$(o.serviceId)).data.clientId == clientId
+        && getAfter(/databases/$(database)/documents/services/$(o.previousRecordId)).data.clientId == clientId;
+    }
     function validService(data) {
-      return (!('continuationOf' in data) || validContinuation(data.continuationOf)) && (!('excludedDays' in data) || (data.excludedDays is list && data.excludedDays.size() <= 2000)) && employeeReference(data) && data.keys().hasOnly(['clientId','title','serviceType','frequency','startDate','estimatedDuration','areas','notes','createdAt','updatedAt','endDate','status','employeeId','weekday','shift','employeeIds','excludedDays','continuationOf'])
+      return (!('occurrenceOf' in data) || validOccurrenceOf(data.occurrenceOf,data.clientId)) && (!('continuationOf' in data) || validContinuation(data.continuationOf)) && (!('excludedDays' in data) || (data.excludedDays is list && data.excludedDays.size() <= 2000)) && employeeReference(data) && data.keys().hasOnly(['clientId','title','serviceType','frequency','startDate','estimatedDuration','areas','notes','createdAt','updatedAt','endDate','status','employeeId','weekday','shift','employeeIds','excludedDays','continuationOf','occurrenceOf'])
         && data.keys().hasAll(['clientId','title','serviceType','frequency','startDate','estimatedDuration','areas','notes','createdAt','updatedAt'])
         && data.clientId is string && validId(data.clientId)
         && existsAfter(/databases/$(database)/documents/clients/$(data.clientId))
@@ -1104,6 +1111,7 @@ service cloud.firestore {
         && manualAudit(sid,request.resource.data.correctionId).before.day == day;
       allow delete: if false;
     }
+    match /{historyPath=**}/changeHistory/{entryId} { allow read: if isAdmin(); }
     match /{document=**} { allow read, write: if false; }
   }
 }

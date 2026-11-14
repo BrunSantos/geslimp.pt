@@ -1,5 +1,5 @@
 import {serviceMaps} from '../service-maps.js?v=115';
-import {initRescheduleUI,rescheduleButton} from '../service-reschedule.js?v=26.11.2';
+import {initRescheduleUI,rescheduleButton} from '../service-reschedule.js?v=26.11.4';
 import {initServiceWorkUI,workButtons} from '../service-work.js?v=26.11.3';
 import {initServicePhotos} from '../service-photos.js?v=131';
 import {occurs,recurring,weekdayOf} from '../recurrence.js?v=111';
