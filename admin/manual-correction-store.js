@@ -19,7 +19,7 @@ export function validateManual(r,now=Date.now()){
 }
 export async function prepareManual(api,db,tx,r,workers,incidents){
  const admin=await tx.get(api.doc(db,'admins',r.uid));if(admin.data()?.enabled!==true)throw Error('Só a administração pode fazer correções manuais.');
- const values=validateManual(r),beforeWorkers={},beforeIncidents={},sourceRows=[],incidentRows=[];
+ const interrupted=await tx.get(api.doc(db,'serviceInterruptions',r.serviceId+'-'+r.day));if(interrupted.exists()&&(r.targetDay!==r.day||r.targetShift!==r.originalShift))throw Error('Esta ocorrência já foi reagendada por incidência. Podes corrigir os horários, mantendo a data e o turno originais.');const values=validateManual(r),beforeWorkers={},beforeIncidents={},sourceRows=[],incidentRows=[];
  for(const d of workers.docs){const s=await tx.get(d.ref);if(s.exists()){beforeWorkers[d.id]=s.data();sourceRows.push({uid:d.id,data:s.data(),ref:d.ref});}}
  for(const d of incidents.docs){const s=await tx.get(d.ref);if(s.exists()){beforeIncidents[d.id]=s.data();incidentRows.push({id:d.id,data:s.data(),ref:d.ref});}}
  const service=await tx.get(api.doc(db,'services',r.serviceId)),client=await tx.get(api.doc(db,'clients',service.data().clientId));if(!crewOf(service.data(),client.data()).includes(r.manual.employeeId))throw Error('O colaborador não está atribuído ao serviço.');
@@ -29,7 +29,7 @@ export async function prepareManual(api,db,tx,r,workers,incidents){
  if(!selected){if(r.manual.uid===r.uid){if(employee.data().email?.toLowerCase()!==r.manual.actorEmail?.toLowerCase())throw Error('A conta não corresponde ao colaborador.');}else{const access=await tx.get(api.doc(db,'employeeAccess',r.manual.uid));if(access.data()?.employeeId!==r.manual.employeeId||access.data()?.enabled!==true){const link=await tx.get(api.doc(db,'employeeAdminLinks',r.manual.employeeId)),account=await tx.get(api.doc(db,'admins',r.manual.uid));if(link.data()?.uid!==r.manual.uid||account.data()?.enabled!==true)throw Error('O acesso deste colaborador não está ativo.');}}}
  if(selected?.data.status==='completed'&&values.finish===null)throw Error('Um serviço finalizado deve manter uma hora de fim.');
  const audit=api.doc(api.collection(db,'services',r.serviceId,'manualCorrections'));
- return {auditId:audit.id,values,beforeWorkers,beforeIncidents,sourceRows,incidentRows};
+ return {interrupted:interrupted.exists(),auditId:audit.id,values,beforeWorkers,beforeIncidents,sourceRows,incidentRows};
 }
 export async function readManualTarget(api,db,tx,r,p,targetId){
  p.phaseRef=api.doc(db,'serviceWork',targetId,'days',r.targetDay);p.phase=await tx.get(p.phaseRef);if(targetId===r.serviceId&&r.targetDay===r.day)return;
@@ -45,6 +45,7 @@ export function writeManual(api,db,tx,r,p,s,targetId,done){
  if(moved){tx.set(api.doc(db,'services',r.serviceId,'manualCorrectionHeads',r.day),{correctionId:p.auditId,updatedAt:api.serverTimestamp()});for(const w of p.sourceRows)tx.delete(w.ref);for(const i of p.incidentRows)tx.update(i.ref,{serviceId:targetId,day:r.targetDay,correctionId:p.auditId});if(done.exists())tx.delete(done.ref);}
  for(const [uid,data] of Object.entries(afterWorkers))tx.set(api.doc(db,'serviceWork',targetId,'days',r.targetDay,'workers',uid),data);
  const finished=Object.values(afterWorkers).some(w=>w.status==='completed');
+ if(p.interrupted)return targetId;
  if(s.frequency==='Pontual'||moved){if(finished)tx.update(api.doc(db,'services',targetId),{status:'concluido',updatedAt:api.serverTimestamp()});if(targetId.startsWith('site-')&&finished)tx.update(api.doc(db,'bookings',targetId.slice(5)),{status:'concluida',updatedAt:api.serverTimestamp()});}
  else if(finished&&!done.exists())tx.set(api.doc(db,'serviceCompletions',targetId+'-'+r.targetDay),{serviceId:targetId,clientId:s.clientId,day:r.targetDay,shift:r.targetShift,employeeIds:[r.manual.employeeId],status:'concluida',createdAt:api.serverTimestamp()});
  return targetId;

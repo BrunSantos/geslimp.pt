@@ -173,7 +173,7 @@ service cloud.firestore {
     function serviceWorkDay(sid,day) {
       let s = get(/databases/$(database)/documents/services/$(sid)).data;
       let parts = day.split('-');
-      return validDay(day) && !(day in s.get('excludedDays',[])) && day >= s.startDate
+      return !exists(/databases/$(database)/documents/serviceInterruptions/$(sid + '-' + day)) && validDay(day) && !(day in s.get('excludedDays',[])) && day >= s.startDate
         && (s.get('endDate','') == '' || day <= s.endDate)
         && (s.frequency == 'Pontual' ? day == s.startDate : s.frequency in ['Semanal','Quinzenal'] && weekOf(day) == s.weekday && (s.frequency != 'Quinzenal' || inFortnight(s.startDate,day)))
         && timestamp.date(int(parts[0]),int(parts[1]),int(parts[2])) <= request.time + duration.value(1,'h');
@@ -424,8 +424,40 @@ service cloud.firestore {
           : request.resource.data.createdAt == request.time);
       allow delete: if isAdmin();
     }
+    function validContinuation(c) {
+      return c is map && c.keys().hasOnly(['serviceId','day','interruptionId'])
+        && validId(c.serviceId) && validDay(c.day) && c.interruptionId == c.serviceId + '-' + c.day
+        && getAfter(/databases/$(database)/documents/serviceInterruptions/$(c.interruptionId)).data.serviceId == c.serviceId;
+    }
+    match /serviceInterruptions/{id} {
+      allow get: if isAdmin() || (request.auth != null && (!exists(/databases/$(database)/documents/serviceInterruptions/$(id)) || portalServiceWorker(resource.data.serviceId)));
+      allow list: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly(['serviceId','clientId','day','shift','incidentId','reason','targetServiceId','targetDay','targetShift','status','actorUid','createdAt'])
+        && id == request.resource.data.serviceId + '-' + request.resource.data.day
+        && request.resource.data.actorUid == request.auth.uid && request.resource.data.createdAt == request.time
+        && request.resource.data.status == 'interrupted'
+        && request.resource.data.reason is string && request.resource.data.reason.size() > 0 && request.resource.data.reason.size() <= 5000
+        && validDay(request.resource.data.day) && validDay(request.resource.data.targetDay)
+        && request.resource.data.targetShift in ['Manhã','Tarde','Noite']
+        && request.resource.data.serviceId != request.resource.data.targetServiceId
+        && get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.status == 'ativo'
+        && request.resource.data.clientId == get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.clientId
+        && getAfter(/databases/$(database)/documents/serviceWork/$(request.resource.data.serviceId)/days/$(request.resource.data.day)).data.started == true
+        && !exists(/databases/$(database)/documents/serviceCompletions/$(request.resource.data.serviceId + '-' + request.resource.data.day))
+        && get(/databases/$(database)/documents/serviceIncidents/$(request.resource.data.incidentId)).data.status == 'open'
+        && get(/databases/$(database)/documents/serviceIncidents/$(request.resource.data.incidentId)).data.serviceId == request.resource.data.serviceId
+        && get(/databases/$(database)/documents/serviceIncidents/$(request.resource.data.incidentId)).data.day == request.resource.data.day
+        && getAfter(/databases/$(database)/documents/services/$(request.resource.data.targetServiceId)).data.createdAt == request.time
+        && getAfter(/databases/$(database)/documents/services/$(request.resource.data.targetServiceId)).data.startDate == request.resource.data.targetDay
+        && getAfter(/databases/$(database)/documents/services/$(request.resource.data.targetServiceId)).data.shift == request.resource.data.targetShift
+        && getAfter(/databases/$(database)/documents/services/$(request.resource.data.targetServiceId)).data.status == 'ativo'
+        && getAfter(/databases/$(database)/documents/services/$(request.resource.data.targetServiceId)).data.clientId == request.resource.data.clientId
+        && getAfter(/databases/$(database)/documents/services/$(request.resource.data.targetServiceId)).data.continuationOf.interruptionId == id;
+      allow update, delete: if false;
+    }
     function validService(data) {
-      return (!('excludedDays' in data) || (data.excludedDays is list && data.excludedDays.size() <= 2000)) && employeeReference(data) && data.keys().hasOnly(['clientId','title','serviceType','frequency','startDate','estimatedDuration','areas','notes','createdAt','updatedAt','endDate','status','employeeId','weekday','shift','employeeIds','excludedDays'])
+      return (!('continuationOf' in data) || validContinuation(data.continuationOf)) && (!('excludedDays' in data) || (data.excludedDays is list && data.excludedDays.size() <= 2000)) && employeeReference(data) && data.keys().hasOnly(['clientId','title','serviceType','frequency','startDate','estimatedDuration','areas','notes','createdAt','updatedAt','endDate','status','employeeId','weekday','shift','employeeIds','excludedDays','continuationOf'])
         && data.keys().hasAll(['clientId','title','serviceType','frequency','startDate','estimatedDuration','areas','notes','createdAt','updatedAt'])
         && data.clientId is string && validId(data.clientId)
         && existsAfter(/databases/$(database)/documents/clients/$(data.clientId))
@@ -464,7 +496,7 @@ service cloud.firestore {
     function validServiceCompletion(d,id) {
       let s = get(/databases/$(database)/documents/services/$(d.serviceId)).data;
       let parts = d.day.split('-');
-      return d.keys().hasOnly(['serviceId','clientId','day','shift','employeeIds','status','createdAt'])
+      return !exists(/databases/$(database)/documents/serviceInterruptions/$(d.serviceId + '-' + d.day)) && d.keys().hasOnly(['serviceId','clientId','day','shift','employeeIds','status','createdAt'])
         && d.keys().hasAll(['serviceId','clientId','day','shift','employeeIds','status','createdAt'])
         && validId(d.serviceId) && id == d.serviceId + '-' + d.day && validDay(d.day)
         && s.frequency in ['Semanal','Quinzenal'] && (s.frequency != 'Quinzenal' || inFortnight(s.startDate,d.day)) && s.get('status','ativo') != 'cancelado'

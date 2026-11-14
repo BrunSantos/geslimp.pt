@@ -2,7 +2,7 @@ import {shiftExpired} from './shift-time.js?v=111';
 import {occurs} from './recurrence.js?v=111';
 import {shiftIndices} from './capacity.js?v=111';
 import * as api from './firestore-feedback.js?v=131';
-import {createRescheduleStore} from './admin/reschedule-store.js?v=26.11.1';
+import {createRescheduleStore} from './admin/reschedule-store.js?v=26.11.2';
 import {todayPortugal} from './admin/client-dates.js';
 export function initRescheduleUI({db,auth,ready,getEmployee,getServices,getBookings=()=>[],admin=false}){let uid='',stop,requests=[],busy=false,chosen;let workUid='',workRows=new Map(),phaseOwner='',phases=new Map(),phaseStops=new Map();
 function blocked(id,day){const record=getServices().find(s=>(s.sourceId||s.id)===id),row=workUid===auth.currentUser?.uid?workRows.get(id+'|'+day):null;return !record||['concluido','concluida'].includes(record.status)||workUid!==auth.currentUser?.uid||!workRows.has(id+'|'+day)||row?.error||row?.startedAt||['started','completed'].includes(row?.status)||!phases.get(id+'|'+day)?.loaded||phases.get(id+'|'+day)?.error||phases.get(id+'|'+day)?.started;}

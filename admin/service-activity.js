@@ -1,11 +1,11 @@
-import {activityKey,activityModel,activityTotals} from './service-activity-model.js?v=120';
+import {activityKey,activityModel,activityTotals} from './service-activity-model.js?v=26.11.2';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function activityPlaceholder(id,day,status='',today=false){return `<div class="service-activity" data-activity-id="${esc(id)}" data-activity-day="${esc(day)}" data-activity-status="${esc(status)}"${today?' data-activity-today="true"':''}><p>A carregar acompanhamento…</p></div>`;}
 export function initServiceActivity({api,db,auth,ready,getState}){
   let owner='',epoch=0,queued=false;const records=new Map(),days=new Map();
   const clock=new Intl.DateTimeFormat('pt-PT',{timeZone:'Europe/Lisbon',hour:'2-digit',minute:'2-digit'});
   const put=(el,html)=>{if(el.innerHTML!==html){el.innerHTML=html;delete el.dataset.activitySignature;}};
-  function model(el){const state=getState(),id=el.dataset.activityId,day=el.dataset.activityDay,row=records.get(activityKey(id,day)),daily=days.get(day);return activityModel({status:el.dataset.activityStatus},row?.rows||[],(daily?.rows||[]).filter(i=>i.serviceId===id),state.employees,state.completions.some(c=>c.serviceId===id&&c.day===day));}
+  function model(el){const state=getState(),id=el.dataset.activityId,day=el.dataset.activityDay,row=records.get(activityKey(id,day)),daily=days.get(day);return activityModel({status:el.dataset.activityStatus,interruption:state.interruptions?.[id+'-'+day]},row?.rows||[],(daily?.rows||[]).filter(i=>i.serviceId===id),state.employees,state.completions.some(c=>c.serviceId===id&&c.day===day));}
   function paint(){
     const elements=[...document.querySelectorAll('[data-activity-id]')];
     for(const el of elements){
@@ -13,12 +13,13 @@ export function initServiceActivity({api,db,auth,ready,getState}){
       if(!ready()){put(el,'');continue;}
       if(row?.error||daily?.error){put(el,'<p class="activity-error">Não foi possível consultar o acompanhamento.</p>');continue;}
       if(!row?.loaded||!daily?.loaded){put(el,'<p>A carregar acompanhamento…</p>');continue;}
-      const m=model(el),labels={waiting:'Por iniciar',running:'Em curso',finished:'Finalizado'};
+      const m=model(el),labels={waiting:'Por iniciar',running:'Em curso',finished:'Finalizado',interrupted:'Interrompido · Reagendado'};
       const events=m.events.length?'<ol class="activity-timeline" aria-label="Acompanhamento do serviço">'+m.events.map(e=>`<li class="activity-${e.kind}"><span>${esc(e.label)}</span>${e.at||e.who?'<small class="activity-event-meta">'+(e.at?'<time>'+esc(clock.format(new Date(e.at)))+'</time>':'')+(e.at&&e.who?' · ':'')+esc(e.who)+'</small>':''}${e.note?'<p>'+esc(e.note)+'</p>':''}${e.kind==='incident'?'<small>'+(e.resolved?'Incidência resolvida':'Por resolver')+'</small>':''}</li>`).join('')+'</ol>':'<p class="activity-waiting">Ainda sem registo de início.</p>';
       const calendar=Boolean(el.closest('#weekly,#overview-summary'));
       const signature=JSON.stringify([m,calendar]);if(el.dataset.activitySignature!==signature){
-        if(calendar){el.classList.add('activity-calendar');el.innerHTML=m.events.length?events:'<p class="activity-state activity-waiting">Por iniciar</p>';}
-        else{const open=el.querySelector('details')?.open;el.innerHTML=`<details${open?' open':''}><summary><span class="activity-state activity-${m.status}">${labels[m.status]}</span>${m.incidents?'<span class="activity-incident-label"> · Com incidência</span>':''}</summary>${events}</details>`;}
+        const service=getState().services.find(s=>s.id===el.dataset.activityId),origin=service?.continuationOf,linked=origin?'<p class="activity-origin">Ligada à ocorrência de '+esc(origin.day.split('-').reverse().join('/'))+'</p>':'';
+        if(calendar){el.classList.add('activity-calendar');el.innerHTML=(m.events.length?events:'<p class="activity-state activity-waiting">Por iniciar</p>')+linked;}
+        else{const open=el.querySelector('details')?.open;el.innerHTML=`<details${open?' open':''}><summary><span class="activity-state activity-${m.status}">${labels[m.status]}</span>${m.incidents?'<span class="activity-incident-label"> · Com incidência</span>':''}</summary>${events}${linked}</details>`;}
         el.dataset.activitySignature=signature;
       }
     }
@@ -29,7 +30,7 @@ export function initServiceActivity({api,db,auth,ready,getState}){
     if(list.some(el=>records.get(activityKey(el.dataset.activityId,el.dataset.activityDay))?.error||days.get(el.dataset.activityDay)?.error)){put(summary,'<p class="activity-error">Resumo indisponível: não foi possível consultar todos os registos.</p>');return;}
     if(list.some(el=>!records.get(activityKey(el.dataset.activityId,el.dataset.activityDay))?.loaded||!days.get(el.dataset.activityDay)?.loaded)){put(summary,'<p>A carregar o resumo dos serviços…</p>');return;}
     const n=activityTotals(list.map(model));
-    put(summary,`<div class="activity-counts"><span>${n.total} serviços</span><span>${n.started} já iniciados</span><span>${n.finished} finalizados</span></div><div class="activity-chart" role="img" aria-label="${n.waiting} por iniciar, ${n.running} em curso, ${n.finished} finalizados">${[['waiting',n.waiting],['running',n.running],['finished',n.finished]].map(([type,count])=>`<span class="activity-${type}" style="width:${100*count/n.total}%"></span>`).join('')}</div><div class="activity-legend"><span>${n.waiting} por iniciar</span><span>${n.running} em curso</span><span>${n.finished} finalizados</span></div><p class="activity-incident-label">${n.withIncident} serviços com incidência · ${n.unresolved} por resolver</p>`);
+    put(summary,`<div class="activity-counts"><span>${n.total} serviços</span><span>${n.started} já iniciados</span><span>${n.finished} finalizados</span></div><div class="activity-chart" role="img" aria-label="${n.waiting} por iniciar, ${n.running} em curso, ${n.finished} finalizados">${[['waiting',n.waiting],['running',n.running],['finished',n.finished],['interrupted',n.interrupted]].map(([type,count])=>`<span class="activity-${type}" style="width:${100*count/n.total}%"></span>`).join('')}</div><div class="activity-legend"><span>${n.waiting} por iniciar</span><span>${n.running} em curso</span><span>${n.finished} finalizados</span><span>${n.interrupted} interrompidos</span></div><p class="activity-incident-label">${n.withIncident} serviços com incidência · ${n.unresolved} por resolver</p>`);
   }
   function sync(){
     const next=ready()?auth.currentUser?.uid||'':'';
