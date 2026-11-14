@@ -1,0 +1,53 @@
+/* Desktop client cards. Mobile contact targets retain the existing layout. */
+@media (min-width:851px) {
+ #client-list .client-card {
+  display:grid;grid-template-columns:minmax(0,1fr) auto;
+  grid-template-areas:"title actions" "details details";
+  align-items:start;gap:10px 22px;margin:16px 0;padding:20px;
+  border:1px solid #dce7ef;border-radius:14px;background:#fff;
+ }
+ #client-list .client-card>div:first-child {display:contents}
+ #client-list .client-card>div:first-child>strong {
+  grid-area:title;align-self:center;font-size:18px;line-height:1.4;margin:0;
+  min-width:0;overflow-wrap:anywhere;
+ }
+ #client-list .client-card>div:first-child>.muted {
+  grid-area:details;min-width:0;line-height:1.65;font-size:14px;
+ }
+ #client-list .client-card>.client-actions {
+  grid-area:actions;display:flex;align-items:center;justify-content:flex-end;
+  align-self:start;gap:8px;margin:0;max-width:310px;
+ }
+ #client-list .client-actions>[data-services-client] {
+  flex:0 0 auto;min-width:132px;height:44px;min-height:44px;padding:10px 20px;
+ }
+ #client-list .client-actions>.record-menu {order:1}
+ #client-list .client-service-count {
+  order:2;flex-basis:100%;font-size:12px;line-height:1.4;text-align:right;color:#627787;
+ }
+ #client-list .client-contacts {
+  display:flex;flex-wrap:wrap;gap:12px 0;margin:6px 0 14px;padding:8px 0 16px;
+  border-bottom:1px solid #e4edf3;
+ }
+ #client-list .client-contact {
+  flex:1 1 220px;box-sizing:border-box;min-width:0;max-width:420px;
+  border:0;border-radius:6px;padding:6px 18px 6px 0;gap:10px;min-height:44px;
+ }
+ #client-list .client-contact+.client-contact {border-left:1px solid #e4edf3;padding-left:18px}
+ #client-list .client-contact strong {font-size:14px;line-height:1.4;margin:2px 0 0;text-decoration:underline;text-underline-offset:3px}
+ #client-list .client-contact small {font-size:12px;line-height:1.4}
+ #client-list .client-contact small:last-child,#client-list .client-contact-chevron {display:none}
+ #client-list .client-contact-icon {font-size:22px;min-width:26px}
+ #client-list .client-contact-icon svg {width:24px;height:24px}
+ #client-list .client-contact:hover {background:#f3f8fc}
+ #client-list .client-card:has(.map-button) {padding-bottom:80px}
+ #client-list .client-actions>.map-button {bottom:18px;right:20px;width:42px;min-width:42px;height:42px;min-height:42px}
+ #client-list .client-actions>.map-button[title="Abrir no Apple Maps"] {right:70px}
+ #client-list .client-actions>.map-button[title="Abrir no Waze"] {right:120px}
+}
+@media (min-width:851px) and (max-width:1100px) {
+ #client-list .client-card {grid-template-columns:minmax(0,1fr);grid-template-areas:"title" "actions" "details"}
+ #client-list .client-card>.client-actions {justify-content:flex-start;max-width:100%}
+ #client-list .client-service-count {flex-basis:auto;text-align:left}
+ #client-list .client-contact {flex-basis:200px}
+}
