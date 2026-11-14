@@ -410,12 +410,10 @@ document.addEventListener('click',async event=>{
 initQuotes({auth,db,getState:()=>state,ready:()=>adminReady,store,openClient,openServiceFromQuote,page,notice});
 
 initTeam({auth,db,getState:()=>state,ready:()=>adminReady,notice,saveService:s=>store.saveService(s)});
-adjustMobileDialogs();
 
 initReportReset({auth,db,ready:()=>adminReady,notice});
 initStock({auth,db,getState:()=>state,ready:()=>adminReady,notice});
 initStockKitModels({auth,db,getState:()=>state,ready:()=>adminReady,notice});
-adjustMobileDialogs();
 
 // Cada entrada começa na Visão geral, sem recuperar secções abertas.
 resetAdminNavigation({page,closeMenu});
