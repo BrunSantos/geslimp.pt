@@ -1,5 +1,5 @@
 import * as api from '../firestore-feedback.js?v=131';
-import {familyMeta,familyRecords,occurrenceIdentity} from './service-family.js?v=26.11.4';
+import {familyMeta,familyRecords,occurrenceIdentity} from './service-family.js?v=26.11.7';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ms=t=>t?.toMillis?.()||(t?.seconds? t.seconds*1000:0),date=d=>d?d.split('-').reverse().join('/'):'—';
 export function historyEvents(state,records,data){
@@ -8,7 +8,7 @@ export function historyEvents(state,records,data){
  for(const item of data){
   const sid=item.id;
   for(const r of item.requests||[])add(sid,r.day,{label:r.status==='pending'?'Pedido de reagendamento pendente':'Pedido de reagendamento',at:ms(r.createdAt),who:name(r.employeeId),note:date(r.day)+' · '+r.originalShift+' → '+date(r.targetDay)+' · '+r.targetShift+'\nMotivo: '+r.message},'request-'+r.id);
-  for(const h of item.changes||[]){const fingerprint=JSON.stringify([h.status,h.before,h.after,h.reason,h.actorUid,ms(h.createdAt)]);add(sid,h.before?.day||h.after?.day,{label:h.status==='rejected'?'Pedido de reagendamento recusado':'Reagendamento',at:ms(h.createdAt),who:h.actorName||h.actorUid,note:date(h.before?.day)+' · '+(h.before?.shift||'')+' → '+date(h.after?.day)+' · '+(h.after?.shift||'')+'\nMotivo: '+h.reason},'move-'+fingerprint);}
+  for(const h of item.changes||[]){const fingerprint=JSON.stringify([h.status,h.before,h.after,h.reason,h.actorUid,ms(h.createdAt)]);add(sid,h.before?.day||h.after?.day,{label:h.status==='rejected'?'Pedido de reagendamento recusado':h.status==='linked'?'Ocorrência antiga integrada':'Reagendamento',at:ms(h.createdAt),who:h.actorName||h.actorUid,note:date(h.before?.day)+' · '+(h.before?.shift||'')+' → '+date(h.after?.day)+' · '+(h.after?.shift||'')+'\nMotivo: '+h.reason},'move-'+fingerprint);}
   for(const w of item.workers||[]){if(w.startedAt)add(sid,w.day,{label:'Serviço iniciado',at:ms(w.startedAt),who:name(w.employeeId),note:''},'start-'+sid+'-'+w.uid+'-'+w.day);if(w.finishedAt)add(sid,w.day,{label:state.interruptions?.[sid+'-'+w.day]?'Fim do trabalho realizado':'Serviço finalizado',at:ms(w.finishedAt),who:name(w.employeeId),note:w.comment||''},'finish-'+sid+'-'+w.uid+'-'+w.day);}
   for(const i of item.incidents||[])add(sid,i.day,{label:'Incidência comunicada',at:ms(i.createdAt),who:name(i.employeeId),note:i.message+(i.status==='resolved'?'\nResolvida: '+(i.resolution||''):'\nPor resolver')},'incident-'+i.id);
   for(const c of item.corrections||[])add(sid,c.before?.day,{label:'Correção manual',at:ms(c.createdAt),who:c.actorName||c.actorUid,note:'Motivo: '+c.reason+'\n'+Object.entries(c.afterWorkers||{}).map(([uid,w])=>{const old=c.beforeWorkers?.[uid],fmt=t=>t?new Date(ms(t)).toLocaleString('pt-PT',{timeZone:'Europe/Lisbon'}):'—';return name(w.employeeId)+': '+fmt(old?.startedAt)+' / '+fmt(old?.finishedAt)+' → '+fmt(w.startedAt)+' / '+fmt(w.finishedAt);}).join('\n')},'correction-'+c.id);

@@ -9,6 +9,7 @@ export async function resolveServiceFamily(api,db,tx,sid,service,day){
    const read=api.getDocsFromServer||api.getDocs,history=await read(api.query(api.collectionGroup(db,'changeHistory'),api.where('resultServiceId','==',current)));
    const links=history.docs.filter(d=>d.ref.parent.parent.id!==current),parents=[...new Set(links.map(d=>d.ref.parent.parent.id))];
    if(parents.length>1)throw Error('Este registo tem ligações diferentes no histórico. Verifica o serviço original antes de reagendar.');
+   if(!parents.length){const requests=await read(api.query(api.collection(db,'serviceRescheduleRequests'),api.where('resultServiceId','==',current)));const valid=requests.docs.filter(d=>d.data().status==='approved'&&d.data().serviceId!==current),ids=[...new Set(valid.map(d=>d.data().serviceId))];if(ids.length>1)throw Error('Existem ligações diferentes nos pedidos antigos. Confirma o serviço original.');if(ids.length){const proof=await tx.get(valid[0].ref);if(proof.data()?.status==='approved'){parent=proof.data().serviceId;sourceDay=proof.data().day;}}}
    if(parents.length){const proof=await tx.get(links.find(d=>d.ref.parent.parent.id===parents[0]).ref);parent=parents[0];sourceDay=proof.data()?.before?.day||'';}
   }
   if(!parent) return {serviceId:current,originalDay};

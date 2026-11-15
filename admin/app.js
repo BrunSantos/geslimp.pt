@@ -1,19 +1,20 @@
+import {initServiceFamilyRepair} from './service-family-repair.js?v=26.11.7';
 import {trackSave} from '../save-feedback.js?v=131';
 import {clientContacts,whatsappNumber} from './client-contacts.js?v=26.11.4';
-import {rootServices,isOccurrenceRecord,completedFamilyOccurrences,familyOccurrences,familyMeta} from './service-family.js?v=26.11.4';
-import {initIncidentReschedule} from './incident-reschedule-ui.js?v=26.11.4';
-import {initManualCorrections} from './manual-correction-ui.js?v=26.11.4';
+import {rootServices,isOccurrenceRecord,completedFamilyOccurrences,familyOccurrences,familyMeta} from './service-family.js?v=26.11.7';
+import {initIncidentReschedule} from './incident-reschedule-ui.js?v=26.11.7';
+import {initManualCorrections} from './manual-correction-ui.js?v=26.11.7';
 import {initStockKitModels} from './stock-kit-models.js?v=138';
-import {weekBounds,renderWeeklyServiceSummary} from './weekly-service-summary.js?v=26.11.4';
-import {initServiceHistory} from './service-family-history.js?v=26.11.4';
+import {weekBounds,renderWeeklyServiceSummary} from './weekly-service-summary.js?v=26.11.7';
+import {initServiceHistory} from './service-family-history.js?v=26.11.7';
 import {initCalendarRefresh} from './calendar-refresh.js?v=122';
 import {activityPlaceholder,initServiceActivity} from './service-activity.js?v=26.11.4';
 import {initClientMap} from './client-map.js?v=111';
 import {initMyServices} from './my-services.js?v=26.11.4';
 import {initServicePhotos} from '../service-photos.js?v=131';
 import {initSessionName} from './session-name.js?v=111';
-import {initNotifications} from './notifications.js?v=26.11.4';
-import {initUnfinishedServices} from './unfinished-services-ui.js?v=26.11.4';
+import {initNotifications} from './notifications.js?v=26.11.7';
+import {initUnfinishedServices} from './unfinished-services-ui.js?v=26.11.7';
 import {createServiceOccurrences} from './service-occurrences.js?v=111';
 import {initServiceOccurrences} from './service-occurrences-ui.js?v=111';
 import {initCapacityUI} from './capacity-ui.js?v=114';
@@ -25,7 +26,7 @@ import {liveSlots,shiftExpired} from '../shift-time.js?v=111';
 import {initAgendaReport} from './agenda-report.js?v=131';
 import {bookingSlots} from './agenda-data.js?v=111';
 import {resetAdminNavigation} from './navigation-start.js?v=111';
-import {initStock} from './stock.js?v=26.11.4';
+import {initStock} from './stock.js?v=26.11.7';
 import {initTeam} from './team.js?v=138';
 import {initQuotes} from './quotes.js?v=131';
 import {todayPortugal, validDate, isPremium} from './client-dates.js';
@@ -41,7 +42,7 @@ auth.languageCode = 'pt';
 const db = getFirestore(app);
 initServiceHistory({db,getState:()=>state});
 const store = createDataStore({collection, doc, runTransaction, serverTimestamp, getDocFromServer, getDocsFromServer, query, where}, db);
-let state = {days: {}, dayData:{},teamDays:{},employees:[],recurringGroups:[], bookings: [], clients: [], services: [], completions: [], interruptions: {}, rescheduleHistory: []};
+let state = {days: {}, dayData:{},teamDays:{},employees:[],recurringGroups:[], bookings: [], clients: [], services: [], completions: [], interruptions: {}, rescheduleHistory: [], rescheduleRequests: []};
 let dayLocks = {};
 let adminReady = false;
 let activityMonitor=null;let incidentReschedule=null;
@@ -189,7 +190,7 @@ function renderServiceList() {
   if (!client) return;
   $('#services-client-name').textContent = client.name;
   const services = rootServices(state).filter(s=>s.clientId===client.id).sort((a,b)=>(b.startDate||'').localeCompare(a.startDate||''));
-  $('#services-list').innerHTML = services.length ? services.map(s=>`<article class="service-record"><div class="head"><strong>${escapeHtml(s.title)}</strong><button class="btn" data-edit-service="${escapeHtml(s.id)}">Editar</button></div><span class="service-frequency">${escapeHtml(s.frequency)}${recurring(s)?' · '+weekNames[s.weekday-1]+' · '+escapeHtml(s.shift):''} · ${serviceStatusLabel(s)}</span><div class="muted">${escapeHtml(s.serviceType)}<br>Início: ${escapeHtml(s.startDate.split('-').reverse().join('/'))}${(s.endDate||s.frequency==='Pontual')?'<br>Término: '+escapeHtml((s.endDate||s.startDate).split('-').reverse().join('/')):'<br>Sem data de término'}${s.estimatedDuration?'<br>Duração prevista: '+escapeHtml(s.estimatedDuration):''}${s.areas?'<br>Áreas e tarefas: '+escapeHtml(s.areas):''}${s.notes?'<br>Observações: '+escapeHtml(s.notes):''}</div>${renderRescheduledOccurrences(s)}<div class="service-buttons"><button type="button" class="btn" data-service-change-history="${escapeHtml(s.id)}">Ver histórico do serviço</button>${(s.status||'ativo')==='ativo'?`${recurring(s)?`<button class="btn" data-occurrence-service="${escapeHtml(s.id)}">Concluir serviço</button><button class="btn" data-end-recurrence="${escapeHtml(s.id)}">Terminar recorrência</button>`:`<button class="btn" data-service-complete="${escapeHtml(s.id)}">Concluir serviço</button>`}<button class="btn" data-service-reschedule="${escapeHtml(s.id)}">Reagendar</button><button class="btn danger" data-service-cancel="${escapeHtml(s.id)}">Cancelar serviço</button>`:''}${recurring(s)&&s.status==='concluido'?`<button class="btn" data-occurrence-service="${escapeHtml(s.id)}">Concluir serviço de uma data anterior</button>`:''}${completedFamilyOccurrences(s.id,state)?`<span class="muted">${completedFamilyOccurrences(s.id,state)} ${completedFamilyOccurrences(s.id,state)===1?'ocorrência concluída':'ocorrências concluídas'}</span>`:''}${s.status==='cancelado'?`<button class="btn danger" data-service-delete="${escapeHtml(s.id)}">Apagar serviço</button>`:''}</div></article>`).join('') : '<div class="empty">Ainda não há serviços adicionados a esta ficha.</div>';
+  $('#services-list').innerHTML = services.length ? services.map(s=>`<article class="service-record"><div class="head"><strong>${escapeHtml(s.title)}</strong><button class="btn" data-edit-service="${escapeHtml(s.id)}">Editar</button></div><span class="service-frequency">${escapeHtml(s.frequency)}${recurring(s)?' · '+weekNames[s.weekday-1]+' · '+escapeHtml(s.shift):''} · ${serviceStatusLabel(s)}</span><div class="muted">${escapeHtml(s.serviceType)}<br>Início: ${escapeHtml(s.startDate.split('-').reverse().join('/'))}${(s.endDate||s.frequency==='Pontual')?'<br>Término: '+escapeHtml((s.endDate||s.startDate).split('-').reverse().join('/')):'<br>Sem data de término'}${s.estimatedDuration?'<br>Duração prevista: '+escapeHtml(s.estimatedDuration):''}${s.areas?'<br>Áreas e tarefas: '+escapeHtml(s.areas):''}${s.notes?'<br>Observações: '+escapeHtml(s.notes):''}</div>${renderRescheduledOccurrences(s)}<div class="service-buttons"><button type="button" class="btn" data-service-change-history="${escapeHtml(s.id)}">Ver histórico do serviço</button>${(s.status||'ativo')==='ativo'?`${recurring(s)?`<button class="btn" data-occurrence-service="${escapeHtml(s.id)}">Concluir serviço</button><button class="btn" data-end-recurrence="${escapeHtml(s.id)}">Terminar recorrência</button>`:`<button class="btn" data-service-complete="${escapeHtml(s.id)}">Concluir serviço</button>`}<button class="btn" data-service-reschedule="${escapeHtml(s.id)}">Reagendar</button><button class="btn danger" data-service-cancel="${escapeHtml(s.id)}">Cancelar serviço</button>`:''}${recurring(s)&&s.status==='concluido'?`<button class="btn" data-occurrence-service="${escapeHtml(s.id)}">Concluir serviço de uma data anterior</button>`:''}${s.frequency==='Pontual'&&!isOccurrenceRecord(s,state)&&rootServices(state).some(root=>root.id!==s.id&&root.clientId===s.clientId&&['Semanal','Quinzenal'].includes(root.frequency))?`<button type="button" class="btn" data-link-service="${escapeHtml(s.id)}">Integrar no serviço original</button>`:''}${completedFamilyOccurrences(s.id,state)?`<span class="muted">${completedFamilyOccurrences(s.id,state)} ${completedFamilyOccurrences(s.id,state)===1?'ocorrência concluída':'ocorrências concluídas'}</span>`:''}${s.status==='cancelado'?`<button class="btn danger" data-service-delete="${escapeHtml(s.id)}">Apagar serviço</button>`:''}</div></article>`).join('') : '<div class="empty">Ainda não há serviços adicionados a esta ficha.</div>';
   $('#legacy-service').hidden = Boolean(services.length || !client.service);
   $('#legacy-service').textContent = client.service ? 'Informação anterior: '+client.service+(client.serviceDetails?' · '+client.serviceDetails:'')+'. Usa “Adicionar serviço” para a organizar numa ficha de trabalho.' : '';
   document.dispatchEvent(new Event('geslimp-service-list'));$('#services-list').querySelectorAll('[data-edit-service]').forEach(button=>button.onclick=()=>openServiceForm(state.services.find(s=>s.id===button.dataset.editService)));
@@ -246,7 +247,7 @@ function stopData() {
   adminReady = false;
   const stamp=document.getElementById('last-refresh-time');if(stamp)stamp.textContent='Última atualização: a aguardar';
   activityMonitor?.sync();
-  state = { days: {}, dayData:{},teamDays:{},employees:[],recurringGroups:[], bookings: [], clients: [], services: [], completions: [], interruptions: {}, rescheduleHistory: [] }; dayLocks = {};
+  state = { days: {}, dayData:{},teamDays:{},employees:[],recurringGroups:[], bookings: [], clients: [], services: [], completions: [], interruptions: {}, rescheduleHistory: [], rescheduleRequests: [] }; dayLocks = {};
   document.body.classList.add('auth-locked');
   document.querySelectorAll('dialog[open]').forEach(d => d.close());
   render();
@@ -256,7 +257,7 @@ function loadAdminData(user, token) {
   let loaded = new Set();
   function ready(name) {
     loaded.add(name);
-    if (loaded.size === 10 && token === generation) {
+    if (loaded.size === 11 && token === generation) {
       markLastRefresh();
       adminReady = true;
       document.body.classList.remove('auth-locked');
@@ -277,6 +278,7 @@ function loadAdminData(user, token) {
     if (!snapshot.metadata.fromCache) ready('days');
   }, error=>failure(error,'availability')));
   for(const name of ['teamDays','employees','recurringSlots','serviceCompletions','serviceInterruptions'])stops.push(onSnapshot(collection(db,name),{includeMetadataChanges:true},snapshot=>{if(token!==generation)return;const values=snapshot.docs.map(d=>({...d.data(),id:d.id,key:d.id}));if(name==='serviceInterruptions')state.interruptions=Object.fromEntries(values.map(d=>[d.id,d]));if(name==='teamDays')state.teamDays=Object.fromEntries(values.map(d=>[d.id,d]));if(name==='serviceCompletions'){state.completions=values;renderServiceList();}if(name==='employees')state.employees=values;if(name==='recurringSlots')state.recurringGroups=values;if(!snapshot.metadata.fromCache)ready(name);},error=>failure(error,name)));
+  stops.push(onSnapshot(collection(db,'serviceRescheduleRequests'),{includeMetadataChanges:true},snapshot=>{if(token!==generation)return;state.rescheduleRequests=snapshot.docs.map(d=>({...d.data(),id:d.id}));if(!snapshot.metadata.fromCache)ready('rescheduleRequests');renderServiceList();},error=>failure(error,'serviceRescheduleRequests')));
   stops.push(onSnapshot(collectionGroup(db,'changeHistory'),{includeMetadataChanges:true},snapshot=>{if(token!==generation)return;state.rescheduleHistory=snapshot.docs.map(d=>({...d.data(),entryId:d.id,ownerServiceId:d.ref.parent.parent.id}));if(!snapshot.metadata.fromCache)ready('rescheduleHistory');renderServiceList();},error=>failure(error,'rescheduleHistory')));
   stops.push(onSnapshot(collection(db, 'bookings'), {includeMetadataChanges:true}, snapshot => {
     if (token !== generation) return;
@@ -470,3 +472,5 @@ activityMonitor=initServiceActivity({api:{onSnapshot,collection,query,where},db,
 initManualCorrections({db,auth,ready:()=>adminReady,getState:()=>state,notice});
 
 incidentReschedule=initIncidentReschedule({db,auth,ready:()=>adminReady,getState:()=>state,notice});
+
+initServiceFamilyRepair({api:{doc,collection,runTransaction,serverTimestamp},db,auth,getState:()=>state,ready:()=>adminReady,perform,render,apply:(id,link)=>{state.services=state.services.map(s=>s.id===id?{...s,occurrenceOf:link}:s);}});

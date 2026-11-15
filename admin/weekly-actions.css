@@ -1,0 +1,11 @@
+#weekly .week-item {position:relative;min-height:44px}
+#weekly .week-item>strong {display:block;padding-right:42px;min-height:36px}
+#weekly .week-action-menu {position:absolute;top:6px;right:6px;z-index:2}
+#weekly .week-action-menu>summary {width:36px;height:36px;min-height:36px;font-size:25px;border-radius:10px;background:#fff}
+#weekly .week-action-menu>.record-menu-options {line-height:1.4;font-size:14px}
+#weekly .week-action-menu .btn {font-size:14px;margin:0;padding:11px 12px;min-height:44px;width:100%;height:auto;white-space:normal;text-align:left}
+#weekly .week-action-menu [data-incident-actions] {display:flex;flex-direction:column;align-items:stretch;gap:2px;margin:0}
+#weekly .week-action-menu [data-incident-actions][hidden] {display:none!important}
+#weekly .week-action-menu [data-incident-actions] .btn {border:0;border-radius:8px;background:transparent;color:#1262a5}
+#weekly .week-action-menu [data-incident-actions] .btn:hover {background:#edf5fc}
+#weekly .week-action-menu .manual-correction-button {margin-top:0}

@@ -19,7 +19,17 @@ function move(button, options) {
   button.classList.remove('primary');
   options.append(button);
 }
+function arrangeWeekly() {
+  for (const card of document.querySelectorAll('#weekly .week-item')) {
+    const options = menu(card, card.querySelector(':scope > strong')?.textContent || 'serviço');
+    options.parentElement.classList.add('week-action-menu');
+    for (const action of card.querySelectorAll(':scope > button,:scope > a,:scope > [data-incident-actions]')) {
+      if (action.parentElement !== options) options.append(action);
+    }
+  }
+}
 function arrange() {
+  arrangeWeekly();
   for (const card of document.querySelectorAll('.q-record, .stock-card, .client-card, #services-list .service-record')) {
     const quote = card.matches('.q-record'), stock = card.matches('.stock-card'), client = card.matches('.client-card');
     const row = card.querySelector(quote || stock ? ':scope > .row' : client ? '.client-actions' : '.service-buttons');
@@ -30,7 +40,7 @@ function arrange() {
     const primary = card.querySelector(quote ? '[data-preview]' : stock ? '[data-stock-issue],[data-stock-loan]' : client ? '[data-services-client]' : '[data-occurrence-service],[data-service-complete]');
     if (primary) { primary.classList.add('primary'); if (primary.parentElement !== row) row.prepend(primary); }
     if (stock && !primary) card.querySelector('[data-stock-history]')?.classList.add('primary');
-    const selector = quote ? '[data-revise],[data-duplicate],[data-model],[data-delete-quote],[data-convert],[data-create-client],[data-share-quote],[data-decide-quote],[data-revoke-quote]' : stock ? '[data-stock-edit],[data-stock-history],[data-invoice-item],[data-stock-toggle],[data-stock-keep],[data-stock-purge]' : client ? '[data-edit-client],[data-delete-client],[data-quotes-client],[data-team-assign]' : '[data-edit-service],[data-end-recurrence],[data-service-reschedule],[data-service-cancel],[data-service-delete],[data-team-assign],[data-service-photos],[data-billing-service],[data-work-history]';
+    const selector = quote ? '[data-revise],[data-duplicate],[data-model],[data-delete-quote],[data-convert],[data-create-client],[data-share-quote],[data-decide-quote],[data-revoke-quote]' : stock ? '[data-stock-edit],[data-stock-history],[data-invoice-item],[data-stock-toggle],[data-stock-keep],[data-stock-purge]' : client ? '[data-edit-client],[data-delete-client],[data-quotes-client],[data-team-assign]' : '[data-link-service],[data-edit-service],[data-end-recurrence],[data-service-reschedule],[data-service-cancel],[data-service-delete],[data-team-assign],[data-service-photos],[data-billing-service],[data-work-history]';
     for (const b of card.querySelectorAll(selector)) if (b !== primary) move(b, options);
     if (quote) {
       const status = row.querySelector('[data-status]');
@@ -63,7 +73,7 @@ const observer = new MutationObserver(() => {
   queueMicrotask(() => { scheduled = false; observer.disconnect(); arrange(); observe(); });
 });
 function observe() {
-  for (const id of ['quote-list','stock-items','client-list','services-list']) {
+  for (const id of ['quote-list','stock-items','client-list','services-list','weekly']) {
     const root = document.getElementById(id);
     if (root) observer.observe(root, {childList:true, subtree:true});
   }
