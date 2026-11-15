@@ -82,7 +82,8 @@ function position(details) {
   const box = details.querySelector('.record-menu-options');
   if (!box || !details.open) return;
   const r = details.querySelector('summary').getBoundingClientRect();
-  const width = Math.min(280, innerWidth - 24);
+  const weekly=details.classList.contains('week-action-menu');
+  const width = Math.min(weekly?184:280, innerWidth - 24);
   box.style.width = width + 'px';
   box.style.left = Math.max(12, Math.min(r.right - width, innerWidth - width - 12)) + 'px';
   const below = innerHeight - r.bottom - 12, above = r.top - 12;
