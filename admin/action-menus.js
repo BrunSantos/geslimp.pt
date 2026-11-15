@@ -28,6 +28,16 @@ function arrangeWeekly() {
     }
   }
 }
+const compactClientActions=window.matchMedia?.('(max-width:850px)');
+function arrangeClientRoutes(card,row,options){
+ const compact=compactClientActions?.matches??(window.innerWidth<=850);
+ for(const route of card.querySelectorAll('a.map-button')){
+  if(compact){
+   if(!route.querySelector('.route-menu-label')){const label=document.createElement('span');label.className='route-menu-label';label.textContent=route.getAttribute('title')||'Abrir percurso';route.append(label);}
+   move(route,options);
+  }else if(route.parentElement!==row)row.append(route);
+ }
+}
 function arrange() {
   arrangeWeekly();
   for (const card of document.querySelectorAll('.q-record, .stock-card, .client-card, #services-list .service-record')) {
@@ -58,6 +68,7 @@ function arrange() {
       if (recurring) options.setAttribute('aria-label', 'Ações da recorrência completa');
       options.querySelector('[data-end-recurrence]')?.classList.add('danger');
     }
+    if(client)arrangeClientRoutes(card,row,options);
     // Ações destrutivas ficam sempre no fim, separadas das restantes.
     const safe = [...options.children].filter(b => !b.classList.contains('danger'));
     const destructive = [...options.children].filter(b => b.classList.contains('danger'));
@@ -107,3 +118,5 @@ document.addEventListener('keydown', e => {
 });
 for (const event of ['resize','scroll']) window.addEventListener(event, () => document.querySelectorAll('.record-menu[open]').forEach(position), true);
 arrange(); observe();
+
+compactClientActions?.addEventListener('change',()=>arrange());

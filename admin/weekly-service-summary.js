@@ -1,4 +1,4 @@
-import {familyMeta,occurrenceIdentity,isSupersededOccurrence} from './service-family.js?v=26.11.7';
+import {familyMeta,occurrenceIdentity,isSupersededOccurrence} from './service-family.js?v=26.11.9';
 import {recurringVisits,recurring} from '../recurrence.js?v=111';
 
 // Datas civis de Lisboa recebidas da aplicação; cálculo em UTC evita desvios de DST.

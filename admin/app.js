@@ -1,6 +1,6 @@
 import {initServiceFamilyRepair,initLegacyAutoAssociation} from './service-family-repair.js?v=26.11.9';
 import {trackSave} from '../save-feedback.js?v=131';
-import {clientContacts,whatsappNumber} from './client-contacts.js?v=26.11.4';
+import {clientContacts,whatsappNumber} from './client-contacts.js?v=26.11.12';
 import {rootServices,isOccurrenceRecord,completedFamilyOccurrences,familyOccurrences,familyMeta} from './service-family.js?v=26.11.9';
 import {initIncidentReschedule} from './incident-reschedule-ui.js?v=26.11.9';
 import {initManualCorrections} from './manual-correction-ui.js?v=26.11.9';
@@ -9,7 +9,7 @@ import {weekBounds,renderWeeklyServiceSummary} from './weekly-service-summary.js
 import {initServiceHistory} from './service-family-history.js?v=26.11.9';
 import {initCalendarRefresh} from './calendar-refresh.js?v=122';
 import {activityPlaceholder,initServiceActivity} from './service-activity.js?v=26.11.4';
-import {initClientMap} from './client-map.js?v=111';
+import {initClientMap} from './client-map.js?v=26.11.12';
 import {initMyServices} from './my-services.js?v=26.11.4';
 import {initServicePhotos} from '../service-photos.js?v=131';
 import {initSessionName} from './session-name.js?v=111';
@@ -26,7 +26,7 @@ import {liveSlots,shiftExpired} from '../shift-time.js?v=111';
 import {initAgendaReport} from './agenda-report.js?v=131';
 import {bookingSlots} from './agenda-data.js?v=111';
 import {resetAdminNavigation} from './navigation-start.js?v=111';
-import {initStock} from './stock.js?v=26.11.10';
+import {initStock} from './stock.js?v=26.11.11';
 import {initTeam} from './team.js?v=138';
 import {initQuotes} from './quotes.js?v=131';
 import {todayPortugal, validDate, isPremium} from './client-dates.js';

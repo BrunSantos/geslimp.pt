@@ -1,12 +1,15 @@
-import {rootServices,isOccurrenceRecord} from './service-family.js?v=26.11.7';
+import {legacyLinks} from './service-family-legacy.js?v=26.11.9';
+import {rootServices,isOccurrenceRecord} from './service-family.js?v=26.11.9';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-export async function linkLegacyOccurrence(api,db,auth,{childId,parentId,day,reason}){
+export async function linkLegacyOccurrence(api,db,auth,{childId,parentId,day,reason,automatic=false,services=[],rescheduleHistory=[],rescheduleRequests=[]}){
  const user=auth.currentUser;if(!user)throw Error('Volta a entrar na administração.');
  if(!childId||childId===parentId||!/^\d{4}-\d{2}-\d{2}$/.test(day)||!reason.trim())throw Error('Escolhe o serviço original, a data original e o motivo.');
  return api.runTransaction(db,async tx=>{
   const cr=api.doc(db,'services',childId),pr=api.doc(db,'services',parentId),child=await tx.get(cr),parent=await tx.get(pr);
   if(auth.currentUser?.uid!==user.uid)throw Error('A sessão mudou. Volta a entrar.');
   const c=child.data(),p=parent.data();
+  if(c?.occurrenceOf?.serviceId===parentId&&c.occurrenceOf.originalDay===day)return c.occurrenceOf;
+  if(automatic){const fresh=services.map(s=>s.id===childId?{...c,id:childId}:s.id===parentId?{...p,id:parentId}:s);if(!legacyLinks({services:fresh,rescheduleHistory,rescheduleRequests}).some(l=>l.childId===childId&&l.parentId===parentId&&l.day===day))throw Error('Os dados mudaram. A associação automática foi cancelada.');}
   if(!child.exists()||!parent.exists()||c.clientId!==p.clientId||c.frequency!=='Pontual'||!['Semanal','Quinzenal'].includes(p.frequency)||c.occurrenceOf||c.continuationOf||p.occurrenceOf||p.continuationOf||!(p.excludedDays||[]).includes(day))throw Error('A ligação deixou de ser válida. Atualiza os serviços e confirma a data original.');
   const link={serviceId:parentId,previousRecordId:parentId,originalDay:day};
   tx.update(cr,{occurrenceOf:link,updatedAt:api.serverTimestamp()});
@@ -21,4 +24,17 @@ export function initServiceFamilyRepair(ctx){
  field('parent').onchange=days;modal.querySelector('[data-close]').onclick=()=>{if(!busy)modal.close();};modal.addEventListener('cancel',e=>{if(busy)e.preventDefault();});
  document.addEventListener('click',e=>{const b=e.target.closest('[data-link-service]');if(!b||!ctx.ready()||busy)return;const state=ctx.getState(),c=state.services.find(s=>s.id===b.dataset.linkService);if(!c||isOccurrenceRecord(c,state))return;childId=c.id;const parents=rootServices(state).filter(s=>s.id!==c.id&&s.clientId===c.clientId&&['Semanal','Quinzenal'].includes(s.frequency));field('parent').innerHTML=(parents.length===1?'':'<option value="">Escolher serviço</option>')+parents.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.title)+' · '+esc(s.frequency)+'</option>').join('');modal.querySelector('[data-name]').textContent=c.title+' · '+c.startDate.split('-').reverse().join('/');field('reason').value='Integração de ocorrência antiga reagendada no serviço original.';days();modal.showModal();});
  modal.querySelector('form').onsubmit=async e=>{e.preventDefault();if(busy||!ctx.ready())return;const input={childId,parentId:field('parent').value,day:field('day').value,reason:field('reason').value};if(!input.parentId||!input.day||!input.reason.trim()){message('Escolhe o serviço original, a data original e o motivo.');return;}busy=true;const user=ctx.auth.currentUser?.uid;modal.querySelectorAll('button,select,textarea').forEach(x=>x.disabled=true);message('A integrar a ocorrência…');try{const ok=await ctx.perform(async()=>{const link=await linkLegacyOccurrence(ctx.api,ctx.db,ctx.auth,input);if(ctx.auth.currentUser?.uid!==user||!ctx.ready())throw Error('A sessão mudou. Volta a entrar para consultar a ligação guardada.');ctx.apply(input.childId,link);ctx.render();modal.close();},'Ocorrência integrada no serviço original.');if(!ok)message('Não foi possível concluir. Consulta o aviso da aplicação e tenta novamente.');}finally{busy=false;modal.querySelectorAll('button,select,textarea').forEach(x=>x.disabled=false);}};
+}
+
+export function initLegacyAutoAssociation(ctx){
+ let running=false,owner='',attempted=new Set();
+ const check=async()=>{
+  const uid=ctx.ready()?ctx.auth.currentUser?.uid||'':'';
+  if(uid!==owner){owner=uid;attempted=new Set();}
+  if(!uid||running||document.hidden||ctx.canRun?.()===false)return;
+  const state=ctx.getState(),link=legacyLinks(state).find(l=>!attempted.has(l.childId));if(!link)return;
+  const ticket=uid;attempted.add(link.childId);running=true;
+  try{await ctx.perform(async()=>{const result=await linkLegacyOccurrence(ctx.api,ctx.db,ctx.auth,{...link,automatic:true,services:state.services,rescheduleHistory:state.rescheduleHistory,rescheduleRequests:state.rescheduleRequests});if(ctx.auth.currentUser?.uid!==ticket||!ctx.ready())throw Error('A sessão mudou. Volta a entrar para consultar o serviço.');ctx.apply(link.childId,result);ctx.render();},'Ocorrência antiga associada ao serviço original.');}finally{running=false;}
+ };
+ setInterval(check,800);
 }

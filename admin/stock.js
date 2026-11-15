@@ -1,4 +1,3 @@
-import {fillSupplierSelect} from './stock-supplier-select.js?v=26.11.10';
 import {createStockLifecycle} from './stock-lifecycle.js?v=137';
 import {trackSave} from '../save-feedback.js?v=131';
 import {initStockInvoices} from './stock-invoices.js?v=131';
@@ -73,4 +72,13 @@ export function initStock(ctx){
  setInterval(()=>{const uid=ctx.ready()?ctx.auth.currentUser?.uid||'':'';if(uid===user)return;user=uid;subscribe(uid);if(!uid){profit.reset();photoGeneration++;photoData='';for(const id of ['#stock-editor','#stock-move','#stock-suppliers','#stock-history','#stock-lifecycle'])$(id).close();$('#stock-form').reset();$('#stock-move-form').reset();$('#stock-history-content').replaceChildren();$('#stock-photo-preview').replaceChildren();$('#stock-report-employee').innerHTML='<option value="">Todos os colaboradores</option>';}},800);
  for(const d of document.querySelectorAll('#stock-editor,#stock-move,#stock-suppliers,#stock-history,#stock-receipt,#stock-cancel-receipt'))d.addEventListener('focusin',e=>{if(e.target.matches('input,select,textarea'))setTimeout(()=>{if(document.activeElement===e.target)e.target.scrollIntoView({block:'nearest',behavior:'smooth'})},180)});
  fillSuppliers();render();
+}
+
+// A saved/custom ID must survive even when its supplier snapshot arrives later.
+function fillSupplierSelect(select,shops,value=select.value){
+ const selected=String(value||''),options=[{id:'',name:'Selecionar loja'},...shops.map(s=>({id:s.id,name:s.name}))];
+ if(selected&&!options.some(s=>s.id===selected))options.push({id:selected,name:'Fornecedor guardado · '+selected});
+ const signature=JSON.stringify(options);
+ if(select.dataset.supplierOptionsKey!==signature){const doc=select.ownerDocument;select.replaceChildren(...options.map(s=>{const option=doc.createElement('option');option.value=s.id;option.textContent=s.name;return option;}));select.dataset.supplierOptionsKey=signature;}
+ if(select.value!==selected)select.value=selected;
 }
