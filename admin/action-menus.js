@@ -35,7 +35,7 @@ function arrangeClientRoutes(card,row,options){
   if(compact){
    if(!route.querySelector('.route-menu-label')){const label=document.createElement('span');label.className='route-menu-label';label.textContent=route.getAttribute('title')||'Abrir percurso';route.append(label);}
    move(route,options);
-  }else if(route.parentElement!==row)row.append(route);
+  }else {const host=card.querySelector('.client-routes')||row;if(route.parentElement!==host)host.append(route);}
  }
 }
 function arrange() {
