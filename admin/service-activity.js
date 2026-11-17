@@ -4,7 +4,7 @@ export function activityPlaceholder(id,day,status='',today=false){return `<div c
 export function initServiceActivity({api,db,auth,ready,getState}){
   let owner='',epoch=0,queued=false;const records=new Map(),days=new Map();
   const clock=new Intl.DateTimeFormat('pt-PT',{timeZone:'Europe/Lisbon',hour:'2-digit',minute:'2-digit'});
-  const put=(el,html)=>{if(el.innerHTML!==html){el.innerHTML=html;delete el.dataset.activitySignature;}};
+  const put=(el,html)=>{if(el.dataset.occurrencePhase!=='loading')el.dataset.occurrencePhase='loading';if(el.innerHTML!==html){el.innerHTML=html;delete el.dataset.activitySignature;}};
   function model(el){const state=getState(),id=el.dataset.activityId,day=el.dataset.activityDay,row=records.get(activityKey(id,day)),daily=days.get(day);return activityModel({status:el.dataset.activityStatus,interruption:state.interruptions?.[id+'-'+day]},row?.rows||[],(daily?.rows||[]).filter(i=>i.serviceId===id),state.employees,state.completions.some(c=>c.serviceId===id&&c.day===day));}
   function paint(){
     const elements=[...document.querySelectorAll('[data-activity-id]')];
@@ -13,7 +13,7 @@ export function initServiceActivity({api,db,auth,ready,getState}){
       if(!ready()){put(el,'');continue;}
       if(row?.error||daily?.error){put(el,'<p class="activity-error">Não foi possível consultar o acompanhamento.</p>');continue;}
       if(!row?.loaded||!daily?.loaded){put(el,'<p>A carregar acompanhamento…</p>');continue;}
-      const m=model(el),labels={waiting:'Por iniciar',running:'Em curso',finished:'Finalizado',interrupted:'Interrompido · Reagendado'};
+      const m=model(el);if(el.dataset.occurrencePhase!==m.status)el.dataset.occurrencePhase=m.status;const labels={waiting:'Por iniciar',running:'Em curso',finished:'Finalizado',interrupted:'Interrompido · Reagendado'};
       const compact=Boolean(el.closest('#weekly'));const events=m.events.length?'<ol class="activity-timeline" aria-label="Acompanhamento do serviço">'+m.events.map(e=>{const who=compact?'':e.who;return `<li class="activity-${e.kind}"><span>${esc(e.label)}</span>${e.at||who?'<small class="activity-event-meta">'+(e.at?'<time>'+esc(clock.format(new Date(e.at)))+'</time>':'')+(e.at&&who?' · ':'')+esc(who)+'</small>':''}${e.note?'<p>'+esc(e.note)+'</p>':''}${e.kind==='incident'?'<small>'+(e.resolved?'Incidência resolvida':'Por resolver')+'</small>':''}</li>`;}).join('')+'</ol>':'<p class="activity-waiting">Ainda sem registo de início.</p>';
       const calendar=Boolean(el.closest('#weekly,#overview-summary'));
       const signature=JSON.stringify([m,calendar]);if(el.dataset.activitySignature!==signature){
