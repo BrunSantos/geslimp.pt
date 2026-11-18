@@ -1,5 +1,5 @@
 const INTERVAL=10*60*1000;
-export function initMailUpdates({api,ready,onInboxUpdate,openInbox}){
+export function initMailUpdates({api,ready,onInboxUpdate,openInbox,onCheck=()=>{}}){
  let active=false,generation=0,inflight=false,lastCheck=0,baseline=null,unread=0,toast=null,hideTimer=null,alertsEnabled=true,preferencesLoaded=false,savingPreference=false;
  async function savePreference(value){if(!active||!preferencesLoaded||savingPreference||!ready())return;const stamp=generation,previous=alertsEnabled;alertsEnabled=value;savingPreference=true;paint();try{const result=await api('email-preference',{enabled:value});if(stamp!==generation)return;alertsEnabled=result.enabled;const status=document.getElementById('notification-save-status');if(status)status.textContent='Preferência de email guardada na tua conta.';}catch{if(stamp===generation){alertsEnabled=previous;const status=document.getElementById('notification-save-status');if(status)status.textContent='Não foi possível guardar a preferência de email. Tenta novamente.';}}finally{if(stamp===generation){savingPreference=false;paint();}}}
  function paint(){
@@ -15,7 +15,7 @@ export function initMailUpdates({api,ready,onInboxUpdate,openInbox}){
  async function sync(force=false){if(!active||inflight||!ready()||document.hidden||globalThis.navigator?.onLine===false||(!force&&lastCheck&&Date.now()-lastCheck<INTERVAL))return;
   const stamp=generation;inflight=true;lastCheck=Date.now();try{const r=await api('poll',{lastUid:baseline?.latestUid||0,validity:baseline?.validity||0});if(stamp!==generation||!active)return;
    const changed=baseline&&r.validity===baseline.validity&&r.newCount>0;
-   baseline={validity:r.validity,latestUid:baseline?.validity===r.validity?Math.max(baseline.latestUid,r.latestUid):r.latestUid};unread=r.unread;if(!savingPreference){alertsEnabled=r.alertsEnabled!==false;preferencesLoaded=true;}paint();if(changed){if(alertsEnabled)notify(r.newCount);onInboxUpdate();}
+   baseline={validity:r.validity,latestUid:baseline?.validity===r.validity?Math.max(baseline.latestUid,r.latestUid):r.latestUid};unread=r.unread;if(!savingPreference){alertsEnabled=r.alertsEnabled!==false;preferencesLoaded=true;}paint();onCheck();if(changed){if(alertsEnabled)notify(r.newCount);onInboxUpdate();}
   }catch{/* Polling failures keep the previous badge; the mailbox shows explicit errors on refresh. */}finally{if(stamp===generation)inflight=false;}
  }
  function start(){if(active){sync();return;}active=true;generation++;preferencesLoaded=false;savingPreference=false;lastCheck=0;baseline=null;unread=0;paint();sync();}
