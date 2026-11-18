@@ -99,3 +99,6 @@ body:has(#email.section.active)>main>.top,body:has(#email.section.active)>main>.
 @keyframes email-broom-sweep{0%,100%{transform:rotate(-13deg) translateX(-4px)}50%{transform:rotate(12deg) translateX(5px)}}
 @keyframes email-list-shimmer{from{background-position:100% 0}to{background-position:-100% 0}}
 @media(prefers-reduced-motion:reduce){.email-loading-broom,.email-skeleton-row,.email-local-spinner{animation:none}}
+
+body:has(#email.section.active) #refresh-data,body:has(#email.section.active) #last-refresh-time{display:none!important}
+.email-last-check{font-size:12px;color:#607585;white-space:normal}
