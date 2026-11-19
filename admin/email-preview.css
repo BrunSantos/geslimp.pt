@@ -184,3 +184,26 @@ body:has(#email.section.active) #refresh-data,body:has(#email.section.active) #l
  #email-preview .email-action-group>.btn:first-child,
  #email-preview .email-more>summary{border-radius:9px;border-right:1px solid var(--mail-border)}
 }
+
+#email-preview .email-compose-header{position:sticky;top:0;z-index:2;background:#fff;padding:6px 0 8px;border-bottom:1px solid var(--mail-border)}
+#email-preview .email-compose-header h3{margin:0;padding-right:56px}
+#email-preview .email-compose-actions{flex-wrap:nowrap;gap:8px;margin:10px 0 0}
+#email-preview .email-compose-actions .btn{box-sizing:border-box;min-height:44px;line-height:1.2;white-space:nowrap}
+#email-preview .email-compose-actions .primary{margin-left:auto;width:auto}
+#email-preview .email-compose-actions .email-attach{position:relative}
+#email-preview .email-attach:focus-within{outline:2px solid var(--mail-blue);outline-offset:2px}
+#email-preview .email-attachment-input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+#email-preview .email-composer .email-attachment-input{margin:0;padding:0}
+#email-preview .email-compose-actions .email-compose-menu{display:none;margin:0}
+#email-preview .email-compose-desktop{display:flex;gap:8px}
+@container (max-width: 530px){
+ #email-preview .email-compose-desktop{display:none}
+ #email-preview .email-compose-actions .email-compose-menu{display:block;position:relative;flex:none}
+ #email-preview .email-compose-menu>summary{display:inline-flex;width:44px;padding:0;list-style:none}
+ #email-preview .email-compose-menu>summary::-webkit-details-marker{display:none}
+ #email-preview .email-compose-menu-items{position:absolute;top:calc(100% + 5px);left:0;display:grid;gap:4px;padding:6px;background:#fff;border:1px solid var(--mail-border);border-radius:10px;box-shadow:0 8px 20px #173c5226}
+ #email-preview .email-compose-menu:not([open]) .email-compose-menu-items{display:none}
+ #email-preview .email-compose-menu-items .btn{justify-content:flex-start}
+ #email-preview .email-compose-actions .email-attach{width:44px;padding:0;flex:none}
+ #email-preview .email-attach-text,#email-preview .email-send-suffix{display:none}
+}
