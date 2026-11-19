@@ -102,3 +102,20 @@ body:has(#email.section.active)>main>.top,body:has(#email.section.active)>main>.
 
 body:has(#email.section.active) #refresh-data,body:has(#email.section.active) #last-refresh-time{display:none!important}
 .email-last-check{font-size:12px;color:#607585;white-space:normal}
+
+/* Tablet reading and composing use the full mail workspace. */
+@media (min-width:851px) and (max-width:1366px){
+ #email-preview .email-workspace{grid-template-columns:160px minmax(0,1fr)}
+ #email-preview .email-detail{display:none}
+ #email-preview .email-workspace.email-show-detail{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
+ #email-preview .email-show-detail>.email-folders,#email-preview .email-show-detail>.email-list{display:none}
+ #email-preview .email-show-detail>.email-detail{display:block;padding:20px 24px}
+ #email-preview .email-detail>[data-mail=back]{display:inline-flex;margin:0 0 16px;min-height:44px}
+ #email-preview .email-composer{padding:0;border:0;max-width:none;width:100%;box-sizing:border-box}
+ #email-preview .email-composer textarea{min-height:200px;font-size:16px;line-height:1.6}
+ #email-preview .email-reading-tools{flex-wrap:wrap}
+ #email-preview .email-reading-tools .btn,#email-preview .email-compose-actions .btn{min-height:44px;font-size:14px}
+ #email-preview .email-html-frame{width:100%;height:clamp(300px,58dvh,800px)}
+ #email-preview .email-message-body{font-size:16px;line-height:1.6}
+ #email-preview .email-folders button{min-height:44px;font-size:14px}
+}
