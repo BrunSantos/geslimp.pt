@@ -1,4 +1,4 @@
-import {initEmailPreview} from './email-preview.js?v=26.11.37';
+import {initEmailPreview} from './email-preview.js?v=26.11.39';
 import {initServiceFamilyRepair,initLegacyAutoAssociation} from './service-family-repair.js?v=26.11.9';
 import {trackSave} from '../save-feedback.js?v=131';
 import {clientContacts,whatsappNumber} from './client-contacts.js?v=26.11.12';
