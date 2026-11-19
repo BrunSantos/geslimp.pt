@@ -167,3 +167,20 @@ body:has(#email.section.active) #refresh-data,body:has(#email.section.active) #l
  #email-preview .email-action-group>.btn{width:44px;min-width:44px;padding:0}
  #email-preview .email-action-group>.btn>span{display:none}
 }
+
+/* Match the height of native buttons and the details summary. */
+#email-preview .email-reading-tools{align-items:center}
+#email-preview .email-action-group{align-items:center}
+#email-preview .email-reading-tools .email-action-group>.btn,
+#email-preview .email-reading-tools .email-more>summary,
+#email-preview .email-reading-tools>[data-mail=expand],
+#email-preview .email-reading-tools>[data-mail=back]{
+ box-sizing:border-box;height:44px;min-height:44px;margin:0;line-height:1;
+}
+#email-preview .email-reading-tools>[data-mail=back]{margin-right:auto}
+@media (min-width:1367px), (min-width:851px) and (pointer:fine) and (hover:hover){
+ #email-preview .email-reading-tools,#email-preview .email-action-group{gap:8px}
+ #email-preview .email-action-group>.btn,
+ #email-preview .email-action-group>.btn:first-child,
+ #email-preview .email-more>summary{border-radius:9px;border-right:1px solid var(--mail-border)}
+}
