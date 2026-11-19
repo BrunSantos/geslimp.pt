@@ -186,7 +186,9 @@ body:has(#email.section.active) #refresh-data,body:has(#email.section.active) #l
 }
 
 #email-preview .email-compose-header{position:sticky;top:0;z-index:2;background:#fff;padding:6px 0 8px;border-bottom:1px solid var(--mail-border)}
-#email-preview .email-compose-header h3{margin:0;padding-right:56px}
+#email-preview .email-compose-title{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#email-preview .email-compose-header h3{margin:0;min-width:0}
+#email-preview .email-compose-title>[data-mail=expand]{flex:0 0 44px;margin:0}
 #email-preview .email-compose-actions{flex-wrap:nowrap;gap:8px;margin:10px 0 0}
 #email-preview .email-compose-actions .btn{box-sizing:border-box;min-height:44px;line-height:1.2;white-space:nowrap}
 #email-preview .email-compose-actions .primary{margin-left:auto;width:auto}
