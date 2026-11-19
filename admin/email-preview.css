@@ -131,3 +131,39 @@ body:has(#email.section.active) #refresh-data,body:has(#email.section.active) #l
 #email-preview .email-expanded .email-html-frame{height:75dvh}
 #email-preview .email-expanded .email-detail>[data-mail=back]{display:inline-flex;margin-bottom:15px}
 @media(max-width:600px){#email-preview .email-workspace.email-expanded{inset:0;border-radius:0}#email-preview .email-expanded>.email-detail{padding:14px}}
+
+#email-preview .email-reading-tools{display:flex;align-items:center;flex-wrap:nowrap;gap:6px}
+#email-preview .email-action-group{display:flex;align-items:stretch;gap:0;min-width:0}
+#email-preview .email-action-group>.btn,#email-preview .email-more>summary{min-height:44px;white-space:nowrap}
+#email-preview .email-more{position:relative;flex:none}
+#email-preview .email-more>summary{list-style:none;cursor:pointer}
+#email-preview .email-more>summary::-webkit-details-marker{display:none}
+#email-preview .email-more-items{position:absolute;right:0;top:calc(100% + 4px);z-index:3;display:grid;gap:4px;min-width:205px;background:white;border:1px solid var(--mail-border);border-radius:10px;padding:6px;box-shadow:0 8px 20px #173c5226}
+#email-preview .email-more:not([open])>.email-more-items{display:none}
+#email-preview .email-more-items .btn{justify-content:flex-start}
+#email-preview .email-reading-tools [data-mail=back]{display:none}
+#email-preview [data-mail=expand],#email-preview .email-reading-tools [data-mail=back],#email-preview .email-more>summary{width:44px;min-width:44px;min-height:44px;padding:0}
+#email-preview [data-mail=expand]>span,#email-preview .email-reading-tools [data-mail=back]>span{display:none}
+#email-preview .email-expanded .email-reading-tools [data-mail=back]{display:inline-flex;margin-right:auto}
+@media(max-width:1366px){
+ #email-preview .email-reading-tools [data-mail=back]{display:inline-flex;margin-right:auto}
+ #email-preview .email-action-group>.btn{width:44px;min-width:44px;padding:0;border-radius:0;border-right:0}
+ #email-preview .email-action-group>.btn:first-child{border-radius:9px 0 0 9px}
+ #email-preview .email-action-group>.btn>span{display:none}
+ #email-preview .email-more>summary{border-radius:0 9px 9px 0}
+}
+@media(max-width:600px) and (orientation:portrait){
+ #email-preview .email-heading [data-mail=new]{position:fixed;left:max(16px,env(safe-area-inset-left));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:20;width:56px;height:56px;padding:0;border-radius:16px;background:var(--mail-blue);color:white;box-shadow:0 5px 16px #173c5240}
+ #email-preview .email-heading [data-mail=new] svg{width:24px;height:24px}
+ #email-preview .email-heading [data-mail=new]>span,#email-preview:has(.email-show-detail) .email-heading [data-mail=new]{display:none}
+ #email-preview .email-message-list{padding-bottom:76px}
+ body:has(#email.section.active)>aside{min-height:0;padding-block:10px}
+ body:has(#email.section.active)>aside .brand{width:92px;min-height:0;padding:0}
+ body:has(#email.section.active)>aside .brand img{width:auto;height:36px;max-width:100%;object-fit:contain}
+ body:has(#email.section.active)>aside .tag{display:none}
+}
+#email-preview .email-detail{container-type:inline-size}
+@container (max-width:365px){
+ #email-preview .email-action-group>.btn{width:44px;min-width:44px;padding:0}
+ #email-preview .email-action-group>.btn>span{display:none}
+}
