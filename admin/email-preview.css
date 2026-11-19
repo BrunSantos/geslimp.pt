@@ -209,3 +209,5 @@ body:has(#email.section.active) #refresh-data,body:has(#email.section.active) #l
  #email-preview .email-compose-actions .email-attach{width:44px;padding:0;flex:none}
  #email-preview .email-attach-text,#email-preview .email-send-suffix{display:none}
 }
+
+#email-preview .email-heading + .email-workspace:not(.email-expanded){margin-top:12px}
