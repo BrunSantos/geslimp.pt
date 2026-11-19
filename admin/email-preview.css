@@ -119,3 +119,15 @@ body:has(#email.section.active) #refresh-data,body:has(#email.section.active) #l
  #email-preview .email-message-body{font-size:16px;line-height:1.6}
  #email-preview .email-folders button{min-height:44px;font-size:14px}
 }
+
+#email-preview .email-last-check{display:block;margin-top:5px;font-size:12px;color:#607585}
+#email-preview .email-heading>div:first-child{min-width:0}
+#email-preview .email-html-frame{box-sizing:border-box;min-width:0;max-width:100%;margin-left:0;margin-right:0}
+
+#email-preview .email-detail>[data-mail=expand]{float:right;position:relative;z-index:1;margin:0 0 12px 12px;min-height:44px}
+#email-preview .email-workspace.email-expanded{position:fixed;inset:12px;z-index:10000;display:block;max-height:none;height:auto;background:#fff;box-shadow:0 0 0 20px #16344855}
+#email-preview .email-expanded>.email-folders,#email-preview .email-expanded>.email-list{display:none}
+#email-preview .email-expanded>.email-detail{display:block;height:100%;padding:24px;box-sizing:border-box;overflow:auto}
+#email-preview .email-expanded .email-html-frame{height:75dvh}
+#email-preview .email-expanded .email-detail>[data-mail=back]{display:inline-flex;margin-bottom:15px}
+@media(max-width:600px){#email-preview .email-workspace.email-expanded{inset:0;border-radius:0}#email-preview .email-expanded>.email-detail{padding:14px}}
